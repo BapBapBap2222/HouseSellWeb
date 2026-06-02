@@ -78,6 +78,9 @@ const normalizeLocationValue = (value: string): string =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
+const slugifyLocationValue = (value: string): string =>
+  normalizeLocationValue(value).replace(/\s+/g, '-');
+
 const dedupeLocations = (values: string[]): string[] => {
   const seen = new Set<string>();
   const deduped: string[] = [];
@@ -134,13 +137,20 @@ const getLocationLabelFromSlug = (provinceSlug: string | null, locationSlug: str
   const province = provinceSlug
     ? VIETNAM_PROVINCES.find((item) => item.slug === provinceSlug)
     : undefined;
+  const administrativeProvince = province ? getAdministrativeProvince(province.name) : undefined;
   const district = province && locationSlug
-    ? province.locations.find((item) => item.slug === locationSlug)
+    ? (
+        administrativeProvince?.districts.find((item) =>
+          slugifyLocationValue(item.full_name || item.name) === locationSlug ||
+          slugifyLocationValue(item.name) === locationSlug,
+        ) ??
+        province.locations.find((item) => item.slug === locationSlug)
+      )
     : undefined;
 
   return {
     city: province?.name ?? '',
-    district: district?.name ?? '',
+    district: district ? ('full_name' in district ? district.full_name || district.name : district.name) : '',
   };
 };
 

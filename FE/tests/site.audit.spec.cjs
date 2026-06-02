@@ -85,4 +85,18 @@ test.describe('Site audit smoke', () => {
     await expect(page).toHaveURL(/search=District\+1/);
     await expect(page).toHaveURL(/province=ho-chi-minh/);
   });
+
+  test('explore district links preselect province and district in listings', async ({ page }) => {
+    await page.goto(`${BASE_URL}/explore`);
+
+    const provinceLink = page.locator('a[href="/listings?province=ho-chi-minh"]').first();
+    await provinceLink.scrollIntoViewIfNeeded();
+    await expect(provinceLink).toBeVisible();
+    await expect(page.locator('a[href="/listings?province=ho-chi-minh&location=quan-1"]').first()).toBeVisible();
+    await expect(page.locator('a[href="/listings?province=ho-chi-minh&location=thanh-pho-thu-duc"]').first()).toBeVisible();
+
+    await page.locator('a[href="/listings?province=ho-chi-minh&location=quan-1"]').first().click();
+    await expect(page).toHaveURL(/\/listings\?province=ho-chi-minh&location=quan-1$/);
+    await expect(page.locator('[role="combobox"]').nth(1)).toContainText('Quận 1');
+  });
 });
