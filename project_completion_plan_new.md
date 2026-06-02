@@ -169,6 +169,21 @@ Mục tiêu của vòng này là duyệt lại route, nút bấm, chart, trang t
   - `/api/news/`: trả 10 items.
   - `/api/prediction/`: trả kết quả estimate hợp lệ.
 
+### Production deploy đã kiểm tra
+
+- Đã deploy FE production bằng Vercel CLI.
+- Deployment READY:
+  - `https://djangofe-mzfba2uag-minhtridn05-5328s-projects.vercel.app`
+  - Alias hiện tại của project: `https://djangofe-kappa.vercel.app`
+- Smoke production FE trên `https://djangofe-kappa.vercel.app`: pass 11/11.
+- Domain `https://djangofe.vercel.app` vẫn gọi được backend qua CORS, nhưng alias này không nằm trong Vercel project/scope hiện tại nên chưa ghi đè được bằng CLI.
+- Đã thêm CORS regex production cho `https://*.vercel.app` trong backend để alias Vercel mới gọi được API sau khi Render redeploy backend.
+- Backend Render hiện tại:
+  - `/api/auth/login/`: 200.
+  - `/api/agents/`: 200.
+  - `/api/news/`: 200.
+  - `/api/prediction/`: đang 500 trên Render hiện tại, trong khi local pass. Nguyên nhân hợp lý nhất là Render chưa redeploy code/model mới của nhánh `new` hoặc service đang chạy artifact cũ.
+
 ### Lưu ý còn lại trước khi bàn giao production
 
 - Local đã chạy ổn với FE `http://127.0.0.1:5173` và BE `http://127.0.0.1:8000`.
@@ -180,6 +195,7 @@ Mục tiêu của vòng này là duyệt lại route, nút bấm, chart, trang t
   - các bucket Supabase
   - `CORS_ALLOWED_ORIGINS=https://djangofe.vercel.app`
 - Vercel frontend cần `VITE_API_BASE_URL=https://djangobe-pz4a.onrender.com`.
+- Render backend cần redeploy từ commit mới nhất trên nhánh `new` để nhận model predict và CORS regex mới.
 
 ## Lưu ý
 

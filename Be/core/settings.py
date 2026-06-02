@@ -311,6 +311,10 @@ if DEBUG:
         r"^http://10\.\d+\.\d+\.\d+:(3000|4173|5173|5174|8080)$",
         r"^http://172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+:(3000|4173|5173|5174|8080)$",
     ])
+else:
+    CORS_ALLOWED_ORIGIN_REGEXES.extend([
+        r"^https://[a-zA-Z0-9-]+\.vercel\.app$",
+    ])
 
 FRONTEND_BASE_URL = os.getenv(
     'FRONTEND_BASE_URL',
