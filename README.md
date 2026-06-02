@@ -18,6 +18,8 @@ Sau đó đọc các phần chi tiết theo thứ tự:
 8. [Design patterns và quy ước code](docs/07_DESIGN_PATTERNS.md)
 9. [Chạy, test và bàn giao](docs/08_CHAY_TEST_BAN_GIAO.md)
 10. [Deploy Supabase, Render và Vercel](docs/10_DEPLOY_SUPABASE_RENDER_VERCEL.md)
+11. [Flow chi tiết của dự án](docs/11_FLOW_CHI_TIET_DU_AN.md)
+12. [Kịch bản demo dự án](docs/12_KICH_BAN_DEMO_DU_AN.md)
 
 ## Tóm tắt nhanh
 

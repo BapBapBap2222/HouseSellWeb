@@ -21,6 +21,8 @@ Tài liệu này thay cho các plan/guide cũ. Mục tiêu là để một ngư�
 8. Đọc `07_DESIGN_PATTERNS.md` để nắm các pattern dùng trong code.
 9. Đọc `08_CHAY_TEST_BAN_GIAO.md` để biết cách chạy, test và bàn giao.
 10. Đọc `10_DEPLOY_SUPABASE_RENDER_VERCEL.md` để biết cách đưa dự án lên production bằng Supabase, backend Render và frontend Vercel.
+11. Đọc `11_FLOW_CHI_TIET_DU_AN.md` để hiểu sâu request chạy qua từng lớp: frontend route, API client, Django URL/view/serializer/service/repository/model, database, storage và prediction.
+12. Đọc `12_KICH_BAN_DEMO_DU_AN.md` để có kịch bản demo, lời thoại, checklist và cách xử lý lỗi khi trình bày.
 
 ## Cách hiểu dự án trong một câu
 
