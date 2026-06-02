@@ -4,9 +4,9 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.compose import ColumnTransformer
+from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
@@ -15,9 +15,33 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 RANDOM_STATE = 42
 TARGET_COL = "price"
-NUM_COLS = ["area", "floor_count", "bedroom_count", "bathroom_count"]
-CAT_COLS = ["property_type_name", "province_name"]
-ALL_COLS = [*CAT_COLS, *NUM_COLS, TARGET_COL]
+NUM_COLS = [
+    "area",
+    "floor_count",
+    "bedroom_count",
+    "bathroom_count",
+    "province_market_score",
+]
+CAT_COLS = ["property_type_name", "province_name", "district_name", "ward_name"]
+SOURCE_COLS = [*CAT_COLS, "area", "floor_count", "bedroom_count", "bathroom_count", TARGET_COL]
+
+PROVINCE_MARKET_SCORES = {
+    "Hà Nội": 2.10,
+    "Hồ Chí Minh": 2.05,
+    "Đà Nẵng": 1.05,
+    "Hải Phòng": 1.02,
+    "Bình Dương": 1.00,
+    "Đồng Nai": 0.98,
+    "Khánh Hòa": 0.96,
+    "Quảng Ninh": 0.95,
+    "Bà Rịa - Vũng Tàu": 0.95,
+    "Cần Thơ": 0.93,
+}
+DEFAULT_MARKET_SCORE = 0.72
+
+
+def get_market_score(province_name: str) -> float:
+    return PROVINCE_MARKET_SCORES.get(str(province_name).strip(), DEFAULT_MARKET_SCORE)
 
 
 def load_dataset(base_dir: Path) -> pd.DataFrame:
@@ -26,42 +50,41 @@ def load_dataset(base_dir: Path) -> pd.DataFrame:
     if not shards:
         raise FileNotFoundError(f"No parquet shard found in: {data_dir}")
 
-    frames = [pd.read_parquet(shard, columns=ALL_COLS) for shard in shards]
-    df = pd.concat(frames, ignore_index=True)
-    return df
+    frames = [pd.read_parquet(shard, columns=SOURCE_COLS) for shard in shards]
+    return pd.concat(frames, ignore_index=True)
 
 
-def clean_dataset(df: pd.DataFrame, sample_size: int = 250_000) -> pd.DataFrame:
+def clean_dataset(df: pd.DataFrame, sample_size: int = 300_000) -> pd.DataFrame:
     df = df.copy()
-
-    # Keep positive-price rows only.
     df = df[pd.to_numeric(df[TARGET_COL], errors="coerce") > 0]
 
-    # Cast numeric columns.
-    for col in NUM_COLS + [TARGET_COL]:
+    for col in ["area", "floor_count", "bedroom_count", "bathroom_count", TARGET_COL]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # Fill missing categorical values.
     for col in CAT_COLS:
         df[col] = df[col].fillna("NA").astype(str).str.strip()
         df.loc[df[col] == "", col] = "NA"
 
-    # Robustly clip outliers to stabilize linear regression.
-    for col in NUM_COLS + [TARGET_COL]:
-        low, high = df[col].quantile([0.01, 0.99])
-        df[col] = df[col].clip(lower=low, upper=high)
+    df = df.dropna(subset=["area", TARGET_COL])
+    df = df[(df["area"] >= 10) & (df["area"] <= 1000)]
+    df = df[(df[TARGET_COL] >= 100_000_000) & (df[TARGET_COL] <= 500_000_000_000)]
 
-    # Filter unrealistic areas after clipping.
-    df = df[df["area"] > 1]
+    for col in ["floor_count", "bedroom_count", "bathroom_count"]:
+        df[col] = df[col].clip(lower=0, upper=df[col].quantile(0.995))
 
-    # Downsample for faster, reproducible training.
+    # Use robust clipping per square meter so the linear model is not dominated by bad listing prices.
+    price_per_m2 = df[TARGET_COL] / df["area"]
+    low, high = price_per_m2.quantile([0.02, 0.98])
+    df = df[(price_per_m2 >= low) & (price_per_m2 <= high)]
+    df["province_market_score"] = df["province_name"].map(get_market_score).astype(float)
+
     if len(df) > sample_size:
         df = df.sample(sample_size, random_state=RANDOM_STATE)
 
     return df.dropna(subset=[TARGET_COL])
 
 
-def build_pipeline() -> Pipeline:
+def build_pipeline() -> TransformedTargetRegressor:
     numeric_pipeline = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
@@ -71,22 +94,25 @@ def build_pipeline() -> Pipeline:
     category_pipeline = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("encoder", OneHotEncoder(handle_unknown="ignore")),
+            ("encoder", OneHotEncoder(handle_unknown="ignore", min_frequency=20)),
         ]
     )
-
     preprocessor = ColumnTransformer(
         transformers=[
             ("num", numeric_pipeline, NUM_COLS),
             ("cat", category_pipeline, CAT_COLS),
         ]
     )
-
-    return Pipeline(
+    regressor = Pipeline(
         steps=[
             ("preprocessor", preprocessor),
-            ("regressor", LinearRegression()),
+            ("regressor", Ridge(alpha=8.0)),
         ]
+    )
+    return TransformedTargetRegressor(
+        regressor=regressor,
+        func=np.log1p,
+        inverse_func=np.expm1,
     )
 
 
@@ -105,23 +131,30 @@ def main() -> None:
 
     x = df[CAT_COLS + NUM_COLS]
     y = df[TARGET_COL]
-
     x_train, x_test, y_train, y_test = train_test_split(
-        x, y, test_size=0.2, random_state=RANDOM_STATE
+        x,
+        y,
+        test_size=0.2,
+        random_state=RANDOM_STATE,
     )
 
     pipeline = build_pipeline()
-    print("Training model...")
+    print("Training Ridge linear regression...")
     pipeline.fit(x_train, y_train)
 
     y_pred = pipeline.predict(x_test)
     metrics = {
+        "dataset_source": "tinixai/vietnam-real-estates parquet shards",
+        "model_type": "Ridge linear regression with log1p target",
         "mae": float(mean_absolute_error(y_test, y_pred)),
         "rmse": float(np.sqrt(mean_squared_error(y_test, y_pred))),
         "r2": float(r2_score(y_test, y_pred)),
         "train_rows": int(len(x_train)),
         "test_rows": int(len(x_test)),
         "features": CAT_COLS + NUM_COLS,
+        "province_coverage": int(df["province_name"].nunique()),
+        "province_market_scores": PROVINCE_MARKET_SCORES,
+        "default_market_score": DEFAULT_MARKET_SCORE,
     }
 
     model_path = model_dir / "lr_pipeline.joblib"

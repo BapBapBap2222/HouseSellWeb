@@ -84,7 +84,7 @@ class PropertyApiTests(APITestCase):
 
         response = self.client.post(
             upload_url,
-            {"images": [self._gif_file()]},
+            {"images": [self._gif_file()], "caption": "Not my property"},
             format="multipart",
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
@@ -94,7 +94,7 @@ class PropertyApiTests(APITestCase):
         upload_url = reverse("property-image-upload", kwargs={"pk": self.active_property.id})
         txt_file = SimpleUploadedFile("bad.txt", b"hello", content_type="text/plain")
 
-        response = self.client.post(upload_url, {"images": [txt_file]}, format="multipart")
+        response = self.client.post(upload_url, {"images": [txt_file], "caption": "Invalid file"}, format="multipart")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("images", response.data)
 
@@ -106,7 +106,7 @@ class PropertyApiTests(APITestCase):
 
         response = self.client.post(
             upload_url,
-            {"images": [self._gif_file(name="big.gif", content=big_content)]},
+            {"images": [self._gif_file(name="big.gif", content=big_content)], "caption": "Too large"},
             format="multipart",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -119,7 +119,7 @@ class PropertyApiTests(APITestCase):
 
         response = self.client.post(
             upload_url,
-            {"images": [self._gif_file(name="a.gif"), self._gif_file(name="b.gif")]},
+            {"images": [self._gif_file(name="a.gif"), self._gif_file(name="b.gif")], "caption": "Too many"},
             format="multipart",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -131,14 +131,14 @@ class PropertyApiTests(APITestCase):
         upload_url = reverse("property-image-upload", kwargs={"pk": self.active_property.id})
         first = self.client.post(
             upload_url,
-            {"images": [self._gif_file(name="first.gif")]},
+            {"images": [self._gif_file(name="first.gif")], "caption": "First"},
             format="multipart",
         )
         self.assertEqual(first.status_code, status.HTTP_201_CREATED)
 
         second = self.client.post(
             upload_url,
-            {"images": [self._gif_file(name="second.gif")]},
+            {"images": [self._gif_file(name="second.gif")], "caption": "Second"},
             format="multipart",
         )
         self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
@@ -150,12 +150,12 @@ class PropertyApiTests(APITestCase):
 
         first = self.client.post(
             upload_url,
-            {"images": [self._gif_file(name="first.gif")], "is_primary": "true", "order": 0},
+            {"images": [self._gif_file(name="first.gif")], "is_primary": "true", "order": 0, "caption": "First"},
             format="multipart",
         )
         second = self.client.post(
             upload_url,
-            {"images": [self._gif_file(name="second.gif")], "is_primary": "false", "order": 1},
+            {"images": [self._gif_file(name="second.gif")], "is_primary": "false", "order": 1, "caption": "Second"},
             format="multipart",
         )
         self.assertEqual(first.status_code, status.HTTP_201_CREATED)

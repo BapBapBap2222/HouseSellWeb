@@ -63,6 +63,7 @@ class PropertyListSerializer(serializers.ModelSerializer):
             "bathrooms",
             "city",
             "district",
+            "ward",
             "address",
             "owner_name",
             "owner_phone",

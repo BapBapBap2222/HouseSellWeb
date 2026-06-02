@@ -21,6 +21,7 @@ export type PropertyFormState = {
   furniture_status: string;
   city: string;
   district: string;
+  ward: string;
   address: string;
   latitude: string;
   longitude: string;
@@ -85,6 +86,7 @@ export const EMPTY_PROPERTY_FORM: PropertyFormState = {
   furniture_status: '',
   city: '',
   district: '',
+  ward: '',
   address: '',
   latitude: '',
   longitude: '',
@@ -148,7 +150,14 @@ export const buildPropertyPayload = (form: PropertyFormState): CreatePropertyPay
   if (!Number.isFinite(area) || area <= 0) {
     throw new Error('Area must be greater than 0.');
   }
-  if (!form.title.trim() || !form.city.trim() || !form.district.trim() || !form.address.trim() || !form.description.trim()) {
+  if (
+    !form.title.trim() ||
+    !form.city.trim() ||
+    !form.district.trim() ||
+    !form.ward.trim() ||
+    !form.address.trim() ||
+    !form.description.trim()
+  ) {
     throw new Error('Please fill in all required fields.');
   }
 
@@ -174,6 +183,7 @@ export const buildPropertyPayload = (form: PropertyFormState): CreatePropertyPay
     furniture_status: furnitureStatus || undefined,
     city: form.city.trim(),
     district: form.district.trim(),
+    ward: form.ward.trim(),
     address: form.address.trim(),
     latitude: toNumberOrUndefined(form.latitude),
     longitude: toNumberOrUndefined(form.longitude),
@@ -214,6 +224,7 @@ export const mapPropertyToForm = (property: Property): PropertyFormState => ({
   furniture_status: toStringOrEmpty(property.furniture_status),
   city: toStringOrEmpty(property.city),
   district: toStringOrEmpty(property.district),
+  ward: toStringOrEmpty(property.ward),
   address: toStringOrEmpty(property.address),
   latitude: isVietnamCoordinatePair(property.latitude, property.longitude)
     ? toStringOrEmpty(property.latitude)

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import heroImage from '@/assets/images/hero.jpg';
@@ -32,7 +32,7 @@ export const CityHero = () => {
              Into Address
           </h1>
           
-          <p className="text-lg md:text-xl text-white/80 max-w-2xl mb-8 font-light">
+          <p className="text-lg md:text-xl text-white/80 max-w-2xl mb-8 font-normal">
             Discover a place you'll love to live. We verify every listing, so you can find your dream home with confidence.
           </p>
         </motion.div>
@@ -51,3 +51,4 @@ export const CityHero = () => {
     </section>
   );
 };
+

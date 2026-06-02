@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -301,7 +301,7 @@ function StatCard({ stat, index }: { stat: typeof MARKET_STATS[0]; index: number
           {stat.change}
         </span>
       </div>
-      <p className="font-['Inter'] text-2xl font-bold tracking-tight text-slate-900">{displayValue}</p>
+      <p className=" text-2xl font-bold tracking-tight text-slate-900">{displayValue}</p>
       <p className="mt-1 text-sm font-semibold text-slate-500">{stat.label}</p>
     </motion.div>
   );
@@ -331,7 +331,7 @@ function NewsCard({ article, index }: { article: NewsCardArticle; index: number 
           <Calendar className="h-3.5 w-3.5" />
           {article.date}
         </div>
-        <h3 className="font-['Inter'] mb-2 line-clamp-2 text-lg font-bold leading-snug text-slate-900 transition-colors duration-200 group-hover:text-teal-700">
+        <h3 className=" mb-2 line-clamp-2 text-lg font-bold leading-snug text-slate-900 transition-colors duration-200 group-hover:text-teal-700">
           {article.title}
         </h3>
         <p className="flex-1 line-clamp-3 text-sm leading-relaxed text-slate-500">{article.excerpt}</p>
@@ -435,8 +435,7 @@ const News = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F7F9] font-['Josefin_Sans']">
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&display=swap');`}</style>
+    <div className="min-h-screen bg-[#F6F7F9]">
       <Header />
 
       <div role="main" className="pb-16 pt-28">
@@ -463,7 +462,7 @@ const News = () => {
                   {featuredArticle.date}
                 </span>
               </div>
-              <h1 className="font-['Inter'] mb-3 max-w-3xl text-2xl font-bold leading-tight text-white md:text-4xl">
+              <h1 className=" mb-3 max-w-3xl text-2xl font-bold leading-tight text-white md:text-4xl">
                 {featuredArticle.title}
               </h1>
               <p className="max-w-2xl text-sm leading-relaxed text-white/80 md:text-base">
@@ -494,7 +493,7 @@ const News = () => {
                 <div className="rounded-xl bg-gradient-to-br from-teal-50 to-sky-50 p-2.5 text-teal-600">
                   <BarChart3 className="h-5 w-5" />
                 </div>
-                <h2 className="font-['Inter'] text-xl font-bold text-slate-900">Price Predictions</h2>
+                <h2 className=" text-xl font-bold text-slate-900">Price Predictions</h2>
               </div>
               <p className="mb-6 ml-[52px] text-sm font-medium text-slate-500">Average price per m² (millions VND) - Last 6 months</p>
 
@@ -532,7 +531,7 @@ const News = () => {
                     <MapPin className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="font-['Inter'] text-lg font-bold text-slate-900">Top Provinces</h3>
+                    <h3 className=" text-lg font-bold text-slate-900">Top Provinces</h3>
                     <p className="text-xs font-medium text-slate-500">By average price per m²</p>
                   </div>
                 </div>
@@ -584,7 +583,7 @@ const News = () => {
                 <Newspaper className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-['Inter'] text-xl font-bold text-slate-900">{isAllView ? 'All News' : 'Latest News'}</h2>
+                <h2 className=" text-xl font-bold text-slate-900">{isAllView ? 'All News' : 'Latest News'}</h2>
                 <p className="text-sm font-medium text-slate-500">
                   {isAllView ? 'All published news articles, 20 items per page.' : 'Showing the 6 latest published real estate news articles.'}
                 </p>
@@ -665,7 +664,7 @@ const News = () => {
                   <Star className="h-5 w-5 fill-amber-300 text-amber-300" />
                   <span className="text-sm font-bold text-teal-200">AI-Powered Prediction</span>
                 </div>
-                <h2 className="font-['Inter'] mb-3 text-2xl font-bold text-white md:text-3xl">Q2 2026 Market Forecast</h2>
+                <h2 className=" mb-3 text-2xl font-bold text-white md:text-3xl">Q2 2026 Market Forecast</h2>
                 <p className="max-w-xl text-sm leading-relaxed text-white/80 md:text-base">
                   Our AI model predicts a continued <span className="font-bold text-emerald-300">4-7% growth</span> in Vietnam&apos;s major urban markets,
                   with Thu Duc City and Long An emerging as top investment hotspots for the next quarter.
@@ -686,3 +685,4 @@ const News = () => {
 };
 
 export default News;
+

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+﻿import { useState, useMemo, useEffect } from 'react';
 import { X, Calendar, Clock, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -100,7 +100,7 @@ export const ScheduleModal = ({ isOpen, onClose, onSchedule, propertyName, avail
                 {/* Header */}
                 <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
                     <div>
-                        <h2 className="text-xl font-bold font-['Inter'] text-gray-900">Schedule Viewing</h2>
+                        <h2 className="text-xl font-bold text-gray-900">Schedule Viewing</h2>
                         {propertyName && <p className="text-sm text-gray-500 mt-1 truncate max-w-[300px]">{propertyName}</p>}
                     </div>
                     <button 
@@ -253,3 +253,4 @@ export const ScheduleModal = ({ isOpen, onClose, onSchedule, propertyName, avail
         </div>
     );
 };
+

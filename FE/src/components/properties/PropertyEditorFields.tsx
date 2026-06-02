@@ -1,7 +1,7 @@
 import { ChangeEvent, useEffect } from 'react';
 import { FileText, Home, Landmark, MapPin, MapPinned, Navigation, RotateCcw, Ruler, Sparkles } from 'lucide-react';
 
-import { LOCATIONS } from '@/data/locations';
+import { VIETNAM_ADMINISTRATIVE_UNITS } from '@/data/vietnamAdministrative';
 import { Button } from '@/components/ui/button';
 import { Map, MapControls, MapMarker, MarkerContent, useMap } from '@/components/ui/map';
 import {
@@ -36,10 +36,12 @@ const formatPreviewPrice = (value: string): string => {
   return `${new Intl.NumberFormat('vi-VN').format(parsed)} VND`;
 };
 
-const getCurrentDistricts = (city: string): string[] => {
-  const location = LOCATIONS.find((item) => item.city === city);
-  return location?.districts ?? [];
-};
+const getCurrentProvince = (city: string) => VIETNAM_ADMINISTRATIVE_UNITS.find((item) => item.name === city);
+
+const getCurrentDistricts = (city: string) => getCurrentProvince(city)?.districts ?? [];
+
+const getCurrentWards = (city: string, district: string) =>
+  getCurrentDistricts(city).find((item) => item.name === district)?.wards ?? [];
 
 function MapClickListener({ onCoordChange }: { onCoordChange: (lat: string, lng: string) => void }) {
   const { map, isLoaded } = useMap();
@@ -71,6 +73,7 @@ const PropertyEditorFields = ({
   const hasSelectedType = Boolean(form.property_type);
   const structureProperty = isStructureProperty(form.property_type);
   const districtOptions = getCurrentDistricts(form.city);
+  const wardOptions = getCurrentWards(form.city, form.district);
   const hasMapCoordinates = form.latitude.trim() !== '' && form.longitude.trim() !== '';
   const mapLatitude = Number.parseFloat(form.latitude);
   const mapLongitude = Number.parseFloat(form.longitude);
@@ -85,7 +88,7 @@ const PropertyEditorFields = ({
       ? 'Bán đất 12.7m đường Lê Duẩn - gần ngã tư Thạch Cao'
       : 'Modern apartment');
   const previewAddress =
-    [form.address.trim(), form.district.trim(), form.city.trim()].filter(Boolean).join(', ') ||
+    [form.address.trim(), form.ward.trim(), form.district.trim(), form.city.trim()].filter(Boolean).join(', ') ||
     'Lê Duẩn, Đông Hà, Quảng Trị';
 
   const renderTextInput = (
@@ -207,7 +210,7 @@ const PropertyEditorFields = ({
           <div>
             <h2 className={sectionTitleClassName}>General Information</h2>
             <p className={sectionHintClassName}>
-              Fill in the public-facing title, exact address and short sales description. Ward has been removed to keep the form cleaner.
+              Fill in the public-facing title, exact province, district, ward and short sales description.
             </p>
           </div>
         </div>
@@ -217,15 +220,21 @@ const PropertyEditorFields = ({
             <div className="grid gap-4 md:grid-cols-2">
               {renderSelect(
                 'city',
-                LOCATIONS.map((item) => ({ value: item.city, label: item.city })),
+                VIETNAM_ADMINISTRATIVE_UNITS.map((item) => ({ value: item.name, label: item.name })),
                 'Province / City *',
                 !hasSelectedType,
               )}
               {renderSelect(
                 'district',
-                districtOptions.map((district) => ({ value: district, label: district })),
+                districtOptions.map((district) => ({ value: district.name, label: district.name })),
                 'District *',
                 !hasSelectedType || !form.city,
+              )}
+              {renderSelect(
+                'ward',
+                wardOptions.map((ward) => ({ value: ward.name, label: ward.name })),
+                'Ward *',
+                !hasSelectedType || !form.city || !form.district,
               )}
               {renderTextInput('address', 'Street address, project name, alley number... *')}
             </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { ArrowLeft, CheckCircle2, Mail, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -56,7 +56,7 @@ const ForgotPassword = () => {
 
         <div className="relative z-10 flex flex-col justify-end p-16 text-white h-full">
           <h1 className="text-5xl font-bold mb-4 leading-tight text-white">Reset your password</h1>
-          <p className="text-lg text-slate-300 font-light">
+          <p className="text-lg text-slate-300 font-normal">
             Enter your username and the email linked to your account.
             <br />
             We will send you a secure link to set a new password.
@@ -149,3 +149,4 @@ const ForgotPassword = () => {
 };
 
 export default ForgotPassword;
+

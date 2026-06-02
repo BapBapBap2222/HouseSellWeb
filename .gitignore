@@ -9,15 +9,20 @@ venv/
 # Django runtime artifacts
 Be/db.sqlite3
 Be/media/
+BE/staticfiles/
 
 # Frontend
 FE/node_modules/
 FE/dist/
+FE/.vercel/
 
 # Local/editor
 .vscode/
 .idea/
 .env
+
+# Supabase CLI local cache
+supabase/.temp/
 
 # Dataset/cache artifacts
 LinearRegressionModel/data/vietnam-real-estates/.cache/

@@ -1,6 +1,6 @@
-﻿const { test, expect } = require('playwright/test');
+const { test, expect } = require('playwright/test');
 
-const BASE_URL = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:4173';
+const BASE_URL = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:5173';
 
 async function fillValidPredictionForm(page) {
   await page.selectOption('#propertyTypeName', { label: 'Nhà' });
@@ -10,7 +10,33 @@ async function fillValidPredictionForm(page) {
   await page.fill('#bathroomCount', '3');
 }
 
-test.describe('Prediction V6 smoke (C05-C07)', () => {
+async function selectMapLocation(page) {
+  const canvas = page.locator('.maplibregl-canvas').first();
+  await canvas.waitFor({ state: 'visible', timeout: 15000 });
+  await canvas.click({ position: { x: 180, y: 160 } });
+  await expect(page.getByText(/\d+\.\d{6}/).first()).toBeVisible();
+}
+
+test.describe('Prediction smoke', () => {
+  test('header exposes Explore and Agents routes', async ({ page }) => {
+    await page.goto(BASE_URL);
+
+    await expect(page.getByRole('link', { name: 'Explore' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Agents' })).toBeVisible();
+  });
+
+  test('location selectors expose provinces, districts, and wards', async ({ page }) => {
+    await page.goto(`${BASE_URL}/prediction`);
+
+    await expect(page.locator('#province')).toBeVisible();
+    await expect(page.locator('#district')).toBeVisible();
+    await expect(page.locator('#ward')).toBeVisible();
+
+    await expect.poll(() => page.locator('#province option').count()).toBeGreaterThanOrEqual(64);
+    await expect.poll(() => page.locator('#district option').count()).toBeGreaterThan(1);
+    await expect.poll(() => page.locator('#ward option').count()).toBeGreaterThan(1);
+  });
+
   test('C05: missing required fields -> no API call and show validation message', async ({ page }) => {
     let requestCount = 0;
 
@@ -34,7 +60,7 @@ test.describe('Prediction V6 smoke (C05-C07)', () => {
     expect(requestCount).toBe(0);
   });
 
-  test('C06: valid FE -> BE payload schema V6 and result render', async ({ page }) => {
+  test('C06: valid FE -> BE payload schema and result render', async ({ page }) => {
     let capturedBody = null;
 
     await page.route('**/api/prediction/', async (route) => {
@@ -54,6 +80,7 @@ test.describe('Prediction V6 smoke (C05-C07)', () => {
 
     await page.goto(`${BASE_URL}/prediction`);
     await fillValidPredictionForm(page);
+    await selectMapLocation(page);
     await page.getByRole('button', { name: 'Dự đoán giá nhà' }).click();
 
     await expect(page.getByRole('heading', { name: 'Kết quả dự đoán' })).toBeVisible();
@@ -68,6 +95,8 @@ test.describe('Prediction V6 smoke (C05-C07)', () => {
       'floor_count',
       'bedroom_count',
       'bathroom_count',
+      'latitude',
+      'longitude',
     ];
     for (const key of requiredKeys) {
       expect(Object.prototype.hasOwnProperty.call(capturedBody, key)).toBeTruthy();
@@ -77,18 +106,20 @@ test.describe('Prediction V6 smoke (C05-C07)', () => {
     expect(capturedBody.floor_count).toBe(4);
     expect(capturedBody.bedroom_count).toBe(3);
     expect(capturedBody.bathroom_count).toBe(3);
+    expect(capturedBody.latitude).toBeGreaterThan(8);
+    expect(capturedBody.longitude).toBeGreaterThan(102);
   });
 
-  test('C07: API network failure -> fallback result rendered safely', async ({ page }) => {
+  test('C07: API network failure -> user-facing error rendered safely', async ({ page }) => {
     await page.route('**/api/prediction/', async (route) => {
       await route.abort('failed');
     });
 
     await page.goto(`${BASE_URL}/prediction`);
     await fillValidPredictionForm(page);
+    await selectMapLocation(page);
     await page.getByRole('button', { name: 'Dự đoán giá nhà' }).click();
 
-    await expect(page.getByRole('heading', { name: 'Kết quả dự đoán' })).toBeVisible();
-    await expect(page.getByText('5.00 tỷ')).toBeVisible();
+    await expect(page.getByText('Không thể kết nối máy chủ dự đoán giá. Vui lòng thử lại sau.')).toBeVisible();
   });
 });

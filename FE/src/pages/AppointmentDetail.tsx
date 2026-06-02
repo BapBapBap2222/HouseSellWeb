@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -191,8 +191,7 @@ const AppointmentDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F7F9] font-['Josefin_Sans']">
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&display=swap');`}</style>
+    <div className="min-h-screen bg-[#F6F7F9]">
       <Header />
 
       <main className="pt-28 pb-16 max-w-[1440px] mx-auto px-4 md:px-8">
@@ -240,7 +239,7 @@ const AppointmentDetail = () => {
             <div className="p-8">
               <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-6">
                 <div>
-                  <h1 className="text-3xl font-bold text-foreground font-['Inter'] leading-tight mb-2">
+                  <h1 className="text-3xl font-bold text-foreground leading-tight mb-2">
                     {property?.title || appointment.property_title}
                   </h1>
                   <div className="flex items-center gap-2 text-muted-foreground">
@@ -248,7 +247,7 @@ const AppointmentDetail = () => {
                     <span className="text-lg">{property?.address || appointment.property_address}</span>
                   </div>
                 </div>
-                <div className="text-2xl md:text-3xl font-bold text-[#0F766E] font-['Inter'] whitespace-nowrap">
+                <div className="text-2xl md:text-3xl font-bold text-[#0F766E] whitespace-nowrap">
                   {formatVndPrice(property?.price)}
                 </div>
               </div>
@@ -270,14 +269,14 @@ const AppointmentDetail = () => {
                 </div>
               )}
 
-              <h3 className="text-xl font-bold mb-4 font-['Inter']">Property Overview</h3>
+              <h3 className="text-xl font-bold mb-4">Property Overview</h3>
               <p className="text-gray-600 leading-relaxed mb-8 text-lg">
                 {property?.description || 'No additional property description is currently available.'}
               </p>
 
               {mapLat !== null && mapLng !== null ? (
                 <>
-                  <h3 className="text-xl font-bold mb-4 font-['Inter']">Location</h3>
+                  <h3 className="text-xl font-bold mb-4">Location</h3>
                   <div className="h-72 w-full rounded-xl overflow-hidden border border-border mb-8">
                     <Map
                       viewport={{ center: [mapLng, mapLat], zoom: 13, bearing: 0, pitch: 0 }}
@@ -298,7 +297,7 @@ const AppointmentDetail = () => {
                 </div>
               )}
 
-              <h3 className="text-xl font-bold mb-4 font-['Inter']">Listing Contact</h3>
+              <h3 className="text-xl font-bold mb-4">Listing Contact</h3>
               <div className="flex items-center gap-4 p-4 border border-border rounded-xl bg-gray-50/50">
                 <Avatar className="w-14 h-14 border-2 border-white shadow-sm">
                   <AvatarImage src="" />
@@ -329,7 +328,7 @@ const AppointmentDetail = () => {
           <aside className="w-full lg:w-[380px] flex-shrink-0">
             <div className="sticky top-28 bg-white rounded-2xl shadow-lg border border-border p-6 flex flex-col gap-6">
               <div>
-                <h3 className="text-lg font-bold font-['Inter'] mb-4">Viewing Schedule</h3>
+                <h3 className="text-lg font-bold mb-4">Viewing Schedule</h3>
                 <div
                   className={cn(
                     'p-4 rounded-xl border transition-colors mb-4',
@@ -386,7 +385,7 @@ const AppointmentDetail = () => {
               <hr className="border-border" />
 
               <div>
-                <h3 className="text-lg font-bold font-['Inter'] mb-3">Your Contact Info</h3>
+                <h3 className="text-lg font-bold mb-3">Your Contact Info</h3>
                 <div className="space-y-2 text-sm text-slate-600">
                   <p>
                     <span className="font-semibold text-slate-700">Name:</span> {appointment.name}
@@ -411,3 +410,4 @@ const AppointmentDetail = () => {
 };
 
 export default AppointmentDetail;
+

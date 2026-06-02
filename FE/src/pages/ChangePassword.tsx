@@ -20,7 +20,7 @@ import { Header } from "@/components/Header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { LOCATIONS } from "@/data/locations";
+import { VIETNAM_ADMINISTRATIVE_UNITS } from "@/data/vietnamAdministrative";
 import { useToast } from "@/hooks/use-toast";
 import { changePassword, updateProfile } from "@/lib/authApi";
 import { getUserDisplayName, getUserInitials } from "@/lib/userProfile";
@@ -43,6 +43,7 @@ const parseStoredAddress = (rawAddress: string | null | undefined) => {
     return {
       city: "",
       district: "",
+      ward: "",
       addressLine: "",
     };
   }
@@ -52,22 +53,26 @@ const parseStoredAddress = (rawAddress: string | null | undefined) => {
     .map((part) => part.trim())
     .filter(Boolean);
 
-  const matchedCity = LOCATIONS.find((item) => item.city === parts[parts.length - 1]);
+  const matchedCity = VIETNAM_ADMINISTRATIVE_UNITS.find((item) => item.name === parts[parts.length - 1]);
   if (!matchedCity) {
     return {
       city: "",
       district: "",
+      ward: "",
       addressLine: normalized,
     };
   }
 
   const maybeDistrict = parts[parts.length - 2] ?? "";
-  const matchedDistrict = matchedCity.districts.includes(maybeDistrict) ? maybeDistrict : "";
-  const detailParts = matchedDistrict ? parts.slice(0, -2) : parts.slice(0, -1);
+  const matchedDistrict = matchedCity.districts.find((item) => item.name === maybeDistrict);
+  const maybeWard = matchedDistrict ? parts[parts.length - 3] ?? "" : "";
+  const matchedWard = matchedDistrict?.wards.find((item) => item.name === maybeWard);
+  const detailParts = matchedWard ? parts.slice(0, -3) : matchedDistrict ? parts.slice(0, -2) : parts.slice(0, -1);
 
   return {
-    city: matchedCity.city,
-    district: matchedDistrict,
+    city: matchedCity.name,
+    district: matchedDistrict?.name ?? "",
+    ward: matchedWard?.name ?? "",
     addressLine: detailParts.join(", "),
   };
 };
@@ -94,6 +99,7 @@ const ChangePasswordPage = () => {
     phone: "",
     city: "",
     district: "",
+    ward: "",
     addressLine: "",
   });
 
@@ -118,7 +124,8 @@ const ChangePasswordPage = () => {
   const displayName = getUserDisplayName(user);
   const initials = getUserInitials(user);
   const createdAt = user?.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A";
-  const districtOptions = LOCATIONS.find((item) => item.city === contact.city)?.districts ?? [];
+  const districtOptions = VIETNAM_ADMINISTRATIVE_UNITS.find((item) => item.name === contact.city)?.districts ?? [];
+  const wardOptions = districtOptions.find((item) => item.name === contact.district)?.wards ?? [];
 
   const handleSavePersonal = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -158,7 +165,7 @@ const ChangePasswordPage = () => {
 
     setSavingContact(true);
     try {
-      const combinedAddress = [contact.addressLine.trim(), contact.district.trim(), contact.city.trim()]
+      const combinedAddress = [contact.addressLine.trim(), contact.ward.trim(), contact.district.trim(), contact.city.trim()]
         .filter(Boolean)
         .join(", ");
 
@@ -434,14 +441,15 @@ const ChangePasswordPage = () => {
                                   ...contact,
                                   city: event.target.value,
                                   district: "",
+                                  ward: "",
                                 })
                               }
                               className={`${inputClass} pl-10 cursor-pointer`}
                             >
                               <option value="">Select Province / City</option>
-                              {LOCATIONS.map((item) => (
-                                <option key={item.city} value={item.city}>
-                                  {item.city}
+                              {VIETNAM_ADMINISTRATIVE_UNITS.map((item) => (
+                                <option key={item.code} value={item.name}>
+                                  {item.name}
                                 </option>
                               ))}
                             </select>
@@ -451,14 +459,31 @@ const ChangePasswordPage = () => {
                             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <select
                               value={contact.district}
-                              onChange={(event) => setContact({ ...contact, district: event.target.value })}
+                              onChange={(event) => setContact({ ...contact, district: event.target.value, ward: "" })}
                               className={`${inputClass} pl-10 cursor-pointer`}
                               disabled={!contact.city}
                             >
                               <option value="">Select District</option>
                               {districtOptions.map((district) => (
-                                <option key={district} value={district}>
-                                  {district}
+                                <option key={district.code} value={district.name}>
+                                  {district.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="relative">
+                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <select
+                              value={contact.ward}
+                              onChange={(event) => setContact({ ...contact, ward: event.target.value })}
+                              className={`${inputClass} pl-10 cursor-pointer`}
+                              disabled={!contact.district}
+                            >
+                              <option value="">Select Ward</option>
+                              {wardOptions.map((ward) => (
+                                <option key={ward.code} value={ward.name}>
+                                  {ward.name}
                                 </option>
                               ))}
                             </select>

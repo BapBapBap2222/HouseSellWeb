@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+﻿import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -477,7 +477,7 @@ const Profile = () => {
               </div>
 
               <div className="flex-1 pb-2">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-['Inter']">{displayName}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{displayName}</h1>
                 <div className="mt-2 pl-1 max-w-2xl">
                   {!editingIntro ? (
                     <div className="flex items-start gap-3">
@@ -553,7 +553,7 @@ const Profile = () => {
                   { label: "Appointments", value: profileStats.appointments, icon: <Calendar className="w-4 h-4" /> },
                 ].map((stat) => (
                   <div key={stat.label} className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 font-['Inter']">{stat.value}</div>
+                    <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
                     <div className="text-xs text-gray-400 mt-0.5 flex items-center justify-center gap-1">
                       {stat.icon}
                       {stat.label}
@@ -587,7 +587,7 @@ const Profile = () => {
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 animate-[fadeIn_0.3s_ease]">
               <div className="lg:col-span-2 space-y-6">
                 <div className="bg-white rounded-2xl pt-3 px-4 pb-6 border border-gray-100 shadow-sm relative">
-                  <h3 className="text-lg font-bold text-gray-900 mb-5 font-['Inter']">Info</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-5">Info</h3>
 
                   <div className="absolute top-3 right-3">
                     {!editingInfo ? (
@@ -646,7 +646,7 @@ const Profile = () => {
                             />
                           ) : (
                             <div className="text-sm text-gray-700 font-medium">
-                              {infoData[info.key] || <span className="text-gray-400 italic">Not updated yet</span>}
+                              {infoData[info.key] || <span className="text-gray-400">Not updated yet</span>}
                             </div>
                           )}
                         </div>
@@ -656,7 +656,7 @@ const Profile = () => {
                 </div>
 
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative">
-                  <h3 className="text-lg font-bold text-gray-900 mb-3 font-['Inter']">Biography</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">Biography</h3>
 
                   <div className="absolute top-3 right-3">
                     {!editingBio ? (
@@ -702,7 +702,7 @@ const Profile = () => {
                     />
                   ) : (
                     <p className="text-sm text-gray-500 leading-relaxed mb-5">
-                      {bioData.bio || <span className="italic text-gray-400">No introduction yet.</span>}
+                      {bioData.bio || <span className=" text-gray-400">No introduction yet.</span>}
                     </p>
                   )}
 
@@ -726,7 +726,7 @@ const Profile = () => {
                           />
                         ) : (
                           <span className="font-medium text-gray-700">
-                            {detail.display || <span className="italic text-gray-400">—</span>}
+                            {detail.display || <span className=" text-gray-400">—</span>}
                           </span>
                         )}
                       </div>
@@ -748,7 +748,7 @@ const Profile = () => {
                           ) : (
                             <ShieldQuestion className="w-5 h-5 text-amber-600" />
                           )}
-                          <h3 className="text-lg font-bold text-gray-900 font-['Inter']">Agent Verification</h3>
+                          <h3 className="text-lg font-bold text-gray-900">Agent Verification</h3>
                         </div>
                         <p className="text-sm text-gray-500 mt-2">
                           {user?.agent_is_verified
@@ -791,7 +791,7 @@ const Profile = () => {
 
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                   <div className="flex justify-between items-center mb-5">
-                    <h3 className="text-lg font-bold text-gray-900 font-['Inter']">Revenue</h3>
+                    <h3 className="text-lg font-bold text-gray-900">Revenue</h3>
                     <select className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-gray-500 cursor-pointer outline-none focus:border-[#14B8A6] transition-colors">
                       <option>Year 2025</option>
                       <option>Year 2024</option>
@@ -859,7 +859,7 @@ const Profile = () => {
 
                 <div className="bg-white rounded-2xl pt-3 px-4 pb-6 border border-gray-100 shadow-sm relative">
                   <div className="flex justify-between items-center mb-5">
-                    <h3 className="text-lg font-bold text-gray-900 font-['Inter']">Latest Activity</h3>
+                    <h3 className="text-lg font-bold text-gray-900">Latest Activity</h3>
                     <button
                       onClick={handleToggleActivityVisibility}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
@@ -919,7 +919,7 @@ const Profile = () => {
             <div className="space-y-6 animate-[fadeIn_0.3s_ease]">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 font-['Inter']">Viewing Appointments</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">Viewing Appointments</h2>
                   <p className="text-sm text-gray-400 mt-1">Properties you are interested in and scheduled to visit</p>
                 </div>
               </div>
@@ -953,7 +953,7 @@ const Profile = () => {
                         <p className="text-sm text-gray-400 mt-1">
                           Meeting with: <span className="font-semibold text-gray-600">{appointment.seller}</span>
                         </p>
-                        <div className="text-xl font-bold text-[#0F766E] font-['Inter'] mt-2">{appointment.price}</div>
+                        <div className="text-xl font-bold text-[#0F766E] mt-2">{appointment.price}</div>
                       </div>
 
                       <div className="flex items-center gap-3 bg-[#F8FAFB] px-4 py-3 rounded-xl border border-gray-100 flex-shrink-0">
@@ -999,7 +999,7 @@ const Profile = () => {
             <div className="space-y-6 animate-[fadeIn_0.3s_ease]">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 font-['Inter']">Properties for Sale</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">Properties for Sale</h2>
                   <p className="text-sm text-gray-400 mt-1">Manage your active property listings</p>
                 </div>
                 <Button
@@ -1060,7 +1060,7 @@ const Profile = () => {
                             <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
                             <span>{item.address}</span>
                           </div>
-                          <div className="text-2xl font-bold text-[#0F766E] font-['Inter'] mt-4 mb-4">{item.price}</div>
+                          <div className="text-2xl font-bold text-[#0F766E] mt-4 mb-4">{item.price}</div>
                         </div>
                       </div>
                     ))}
@@ -1098,3 +1098,4 @@ const Profile = () => {
 };
 
 export default Profile;
+

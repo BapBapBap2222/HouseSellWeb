@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Eye, EyeOff, Lock } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -92,7 +92,7 @@ const ResetPasswordConfirm = () => {
 
         <div className="relative z-10 flex flex-col justify-end p-16 text-white h-full">
           <h1 className="text-5xl font-bold mb-4 leading-tight text-white">Choose a new password</h1>
-          <p className="text-lg text-slate-300 font-light">
+          <p className="text-lg text-slate-300 font-normal">
             Create a new password for your Blue Sky account.
             <br />
             This reset link is checked securely before you can continue.
@@ -203,3 +203,4 @@ const ResetPasswordConfirm = () => {
 };
 
 export default ResetPasswordConfirm;
+

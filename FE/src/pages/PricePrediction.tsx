@@ -8,6 +8,7 @@ import { MapPin, Cpu, Sparkles, ChevronDown, RotateCcw, Search,
 } from 'lucide-react';
 import { Map, MapMarker, MarkerContent, MapControls, useMap } from '@/components/ui/map';
 import api from '@/lib/api';
+import { VIETNAM_ADMINISTRATIVE_UNITS } from '@/data/vietnamAdministrative';
 
 // Types
 interface Province {
@@ -31,6 +32,19 @@ interface PredictionResult {
   confidence: number;
   price_per_m2: number;
 }
+type MapClickEvent = {
+  lngLat: {
+    lat: number;
+    lng: number;
+  };
+};
+type PredictionApiError = {
+  response?: {
+    data?: {
+      error?: unknown;
+    };
+  };
+};
 
 function normalizeApiErrorMessage(errorValue: unknown): string {
   if (typeof errorValue === 'string') {
@@ -151,7 +165,7 @@ function StepCard({ num, title, desc, icon: Icon }: { num: number; title: string
           {num}
         </span>
       </div>
-      <h3 className="font-bold text-slate-800 text-base font-['Inter']">{title}</h3>
+      <h3 className="font-bold text-slate-800 text-base">{title}</h3>
       <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
     </motion.div>
   );
@@ -162,8 +176,7 @@ function MapClickListener({ onCoordChange }: { onCoordChange: (lat: string, lng:
   const { map, isLoaded } = useMap();
   useEffect(() => {
     if (!map || !isLoaded) return;
-    // We add a 'any' cast to the event because MapLibre types vary.
-    const handleClick = (e: any) => {
+    const handleClick = (e: MapClickEvent) => {
       const { lat: clickLat, lng: clickLng } = e.lngLat;
       onCoordChange(clickLat.toFixed(6), clickLng.toFixed(6));
     };
@@ -276,7 +289,7 @@ function ResultCard({ result }: { result: PredictionResult }) {
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900 font-['Inter']">Kết quả dự đoán</h3>
+            <h3 className="text-lg font-bold text-slate-900">Kết quả dự đoán</h3>
             <p className="text-xs text-slate-500 font-medium">Powered by AI model</p>
           </div>
           <div className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100">
@@ -289,18 +302,18 @@ function ResultCard({ result }: { result: PredictionResult }) {
           {/* Main price */}
           <div className="md:col-span-1 bg-gradient-to-br from-teal-500 to-sky-600 rounded-xl p-5 text-white flex flex-col justify-center">
             <p className="text-sm font-semibold text-teal-100 mb-1">Giá ước tính</p>
-            <p className="text-2xl md:text-3xl font-bold font-['Inter'] leading-tight">{formatPrice(result.estimated_price)}</p>
+            <p className="text-2xl md:text-3xl font-bold leading-tight">{formatPrice(result.estimated_price)}</p>
           </div>
 
           {/* Min/Max */}
           <div className="md:col-span-2 grid grid-cols-2 gap-4">
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
               <p className="text-xs font-semibold text-slate-500 mb-1">Giá thấp nhất</p>
-              <p className="text-xl font-bold text-slate-800 font-['Inter']">{formatPrice(result.price_min)}</p>
+              <p className="text-xl font-bold text-slate-800">{formatPrice(result.price_min)}</p>
             </div>
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
               <p className="text-xs font-semibold text-slate-500 mb-1">Giá cao nhất</p>
-              <p className="text-xl font-bold text-slate-800 font-['Inter']">{formatPrice(result.price_max)}</p>
+              <p className="text-xl font-bold text-slate-800">{formatPrice(result.price_max)}</p>
             </div>
             {/* Confidence */}
             <div className="col-span-2 p-4 rounded-xl bg-slate-50 border border-slate-100">
@@ -361,47 +374,12 @@ const PricePrediction = () => {
 
   // Load provinces
   useEffect(() => {
-    setProvinces([
-      { 
-        code: 1, 
-        name: 'Hà Nội', 
-        districts: [{ 
-          code: 1, 
-          name: 'Cầu Giấy', 
-          wards: [{ 
-            code: 1, 
-            name: 'Dịch Vọng' 
-          }] 
-        }] 
-      },
-      {
-        code: 2,
-        name: 'Hồ Chí Minh',
-        districts: [{
-          code: 1,
-          name: 'Thủ Đức',
-          wards: [{
-            code: 1,
-            name: 'Linh Trung',
-          }],
-        }],
-      },
-      {
-        code: 3,
-        name: 'Đà Nẵng',
-        districts: [{
-          code: 1,
-          name: 'Hải Châu',
-          wards: [{
-            code: 1,
-            name: 'Thạch Thang',
-          }],
-        }],
-      }
-    ]);
-    setSelectedProvince('1');
-    setSelectedDistrict('1');
-    setSelectedWard('1');
+    const predictionProvinces = VIETNAM_ADMINISTRATIVE_UNITS;
+
+    setProvinces(predictionProvinces);
+    setSelectedProvince(String(predictionProvinces[0]?.code ?? ''));
+    setSelectedDistrict(String(predictionProvinces[0]?.districts[0]?.code ?? ''));
+    setSelectedWard(String(predictionProvinces[0]?.districts[0]?.wards[0]?.code ?? ''));
     setLoadingProvinces(false);
   }, []);
 
@@ -412,13 +390,16 @@ const PricePrediction = () => {
 
   const handleProvinceChange = (val: string) => {
     setSelectedProvince(val);
-    setSelectedDistrict('');
-    setSelectedWard('');
+    const nextProvince = provinces.find((province) => String(province.code) === val);
+    const nextDistrict = nextProvince?.districts[0];
+    setSelectedDistrict(String(nextDistrict?.code ?? ''));
+    setSelectedWard(String(nextDistrict?.wards[0]?.code ?? ''));
   };
 
   const handleDistrictChange = (val: string) => {
     setSelectedDistrict(val);
-    setSelectedWard('');
+    const nextDistrict = currentProvinceObj?.districts.find((district) => String(district.code) === val);
+    setSelectedWard(String(nextDistrict?.wards[0]?.code ?? ''));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -426,6 +407,10 @@ const PricePrediction = () => {
 
     if (!propertyTypeName || !area || !floorCount || !bedroomCount || !bathroomCount) {
       setError('Vui lòng nhập đầy đủ thông tin bất động sản bắt buộc.');
+      return;
+    }
+    if (!lat || !lng) {
+      setError('Vui lòng nhấp vào bản đồ để chọn vị trí bất động sản.');
       return;
     }
 
@@ -442,6 +427,8 @@ const PricePrediction = () => {
       floor_count: parseFloat(floorCount),
       bedroom_count: parseFloat(bedroomCount),
       bathroom_count: parseFloat(bathroomCount),
+      latitude: parseFloat(lat),
+      longitude: parseFloat(lng),
     };
 
     try {
@@ -449,31 +436,23 @@ const PricePrediction = () => {
       const data: PredictionResult = res.data;
       setResult(data);
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-    } catch (err: any) {
-      if (err.response?.data?.error !== undefined) {
-        const message = normalizeApiErrorMessage(err.response.data.error);
+    } catch (err: unknown) {
+      const apiError = err as PredictionApiError;
+      if (apiError.response?.data?.error !== undefined) {
+        const message = normalizeApiErrorMessage(apiError.response.data.error);
         setError(message || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại thông tin.');
       } else {
-        // For demo: generate a mock result when BE is unavailable
-        const basePrice = 5_000_000_000;
-        setResult({
-          estimated_price: basePrice,
-          price_min: Math.round(basePrice * 0.88),
-          price_max: Math.round(basePrice * 1.12),
-          confidence: 0.82,
-          price_per_m2: area ? Math.round(basePrice / parseFloat(area)) : 0,
-        });
-        setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+        setError('Không thể kết nối máy chủ dự đoán giá. Vui lòng thử lại sau.');
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isFormValid = !!propertyTypeName && !!area && !!floorCount && !!bedroomCount && !!bathroomCount;
+  const isFormValid = !!propertyTypeName && !!area && !!floorCount && !!bedroomCount && !!bathroomCount && !!lat && !!lng;
 
   return (
-    <div className="min-h-screen bg-[#F6F7F9] font-['Inter']">
+    <div className="min-h-screen bg-[#F6F7F9]">
       <Header />
 
       <main className="pt-28 pb-16">
@@ -500,7 +479,7 @@ const PricePrediction = () => {
                   </div>
                   <span className="text-sm font-bold text-teal-300 tracking-wide">AI-Powered · Real Estate</span>
                 </div>
-                <h1 className="text-3xl md:text-5xl font-bold text-white font-['Inter'] leading-tight mb-4">
+                <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4">
                   Dự đoán giá nhà<br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-sky-300">bằng trí tuệ nhân tạo</span>
                 </h1>
@@ -521,7 +500,7 @@ const PricePrediction = () => {
         <section className="max-w-[1440px] mx-auto px-4 md:px-8 mb-12">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
             <div className="text-center mb-8">
-              <h2 className="text-xl font-bold text-slate-900 font-['Inter'] mb-1">Cách thức hoạt động</h2>
+              <h2 className="text-xl font-bold text-slate-900 mb-1">Cách thức hoạt động</h2>
               <p className="text-sm text-slate-500 font-medium">3 bước đơn giản để có kết quả dự đoán</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
@@ -555,7 +534,7 @@ const PricePrediction = () => {
                     <Search className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900 font-['Inter']">Thông tin bất động sản</h2>
+                    <h2 className="text-lg font-bold text-slate-900">Thông tin bất động sản</h2>
                     <p className="text-xs text-slate-500 font-medium">Điền đầy đủ để có kết quả chính xác nhất</p>
                   </div>
                 </div>

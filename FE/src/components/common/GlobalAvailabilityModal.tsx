@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Calendar, Clock, RotateCcw, Save, X } from "lucide-react";
 import { addDays, format } from "date-fns";
 
@@ -122,7 +122,7 @@ export const GlobalAvailabilityModal = ({
       <div className="bg-white rounded-[28px] shadow-xl w-full max-w-[660px] overflow-hidden flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
           <div>
-            <h2 className="text-[2rem] font-bold font-['Inter'] text-gray-900 leading-none">Schedule Viewing</h2>
+            <h2 className="text-[2rem] font-bold text-gray-900 leading-none">Schedule Viewing</h2>
             {propertyName && <p className="text-sm text-gray-500 mt-2 truncate max-w-[360px]">{propertyName}</p>}
           </div>
           <button
@@ -223,3 +223,4 @@ export const GlobalAvailabilityModal = ({
     </div>
   );
 };
+

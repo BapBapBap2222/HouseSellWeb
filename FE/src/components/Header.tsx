@@ -18,6 +18,8 @@ import { getUserDisplayName, getUserInitials } from "@/lib/userProfile";
 import logo from "@/assets/images/logo.png";
 
 const baseNavLinks = [
+  { label: "Explore", href: "/explore" },
+  { label: "Agents", href: "/agents" },
   { label: "News", href: "/news" },
   { label: "Prediction", href: "/prediction" },
   { label: "Buy", href: "/listings?type=buy" },

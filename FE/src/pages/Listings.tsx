@@ -15,7 +15,7 @@ import {
 import { ListingCard } from '@/components/listings/ListingCard';
 import { ListingRow } from '@/components/listings/ListingRow';
 import { Pagination } from '@/components/listings/Pagination';
-import { LOCATIONS } from '@/data/locations';
+import { VIETNAM_ADMINISTRATIVE_UNITS } from '@/data/vietnamAdministrative';
 import { VIETNAM_PROVINCES } from '@/data/provinces';
 import { cn } from '@/lib/utils';
 import { getImageUrl, getProperties, normalizeListResponse, Property } from '@/lib/propertiesApi';
@@ -99,7 +99,7 @@ const mapPropertyToListing = (property: Property): ListingViewModel => {
     price: formatVndPrice(rawPrice),
     rawPrice,
     title: property.title,
-    address: [property.address, property.district, property.city].filter(Boolean).join(', '),
+    address: [property.address, property.ward, property.district, property.city].filter(Boolean).join(', '),
     beds: property.bedrooms ?? 0,
     baths: property.bathrooms ?? 0,
     area: Number(property.area || 0),
@@ -208,8 +208,8 @@ const Listings = () => {
   const cityOptions = useMemo(() => {
     return dedupeLocations([
       ...VIETNAM_PROVINCES.map((item) => item.name),
+      ...VIETNAM_ADMINISTRATIVE_UNITS.map((item) => item.name),
       ...allListings.map((item) => item.city).filter(Boolean),
-      ...LOCATIONS.map((item) => item.city),
     ]);
   }, [allListings]);
 
@@ -217,7 +217,7 @@ const Listings = () => {
     if (!filters.city) return [];
     const normalizedCity = normalizeLocationValue(filters.city);
     const province = VIETNAM_PROVINCES.find((item) => normalizeLocationValue(item.name) === normalizedCity);
-    const fallback = LOCATIONS.find((item) => normalizeLocationValue(item.city) === normalizedCity);
+    const administrativeProvince = VIETNAM_ADMINISTRATIVE_UNITS.find((item) => normalizeLocationValue(item.name) === normalizedCity);
 
     return dedupeLocations([
       ...allListings
@@ -225,7 +225,7 @@ const Listings = () => {
         .map((item) => item.district)
         .filter(Boolean) as string[],
       ...(province?.locations.map((item) => item.name) ?? []),
-      ...(fallback?.districts ?? []),
+      ...(administrativeProvince?.districts.map((item) => item.name) ?? []),
     ]);
   }, [allListings, filters.city]);
 

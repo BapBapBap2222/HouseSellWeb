@@ -19,6 +19,25 @@ from django.core.exceptions import ImproperlyConfigured
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _load_local_env_file() -> None:
+    env_path = BASE_DIR / ".env"
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_local_env_file()
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
@@ -251,6 +270,7 @@ PASSWORD_RESET_TIMEOUT = int(os.getenv('PASSWORD_RESET_TIMEOUT', '1800'))
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -268,6 +288,8 @@ _default_dev_cors_origins = ','.join([
     'http://127.0.0.1:4173',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5174',
     'http://localhost:8080',
     'http://127.0.0.1:8080',
 ])
@@ -285,9 +307,9 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 
 if DEBUG:
     CORS_ALLOWED_ORIGIN_REGEXES.extend([
-        r"^http://192\.168\.\d+\.\d+:(3000|4173|5173|8080)$",
-        r"^http://10\.\d+\.\d+\.\d+:(3000|4173|5173|8080)$",
-        r"^http://172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+:(3000|4173|5173|8080)$",
+        r"^http://192\.168\.\d+\.\d+:(3000|4173|5173|5174|8080)$",
+        r"^http://10\.\d+\.\d+\.\d+:(3000|4173|5173|5174|8080)$",
+        r"^http://172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+:(3000|4173|5173|5174|8080)$",
     ])
 
 FRONTEND_BASE_URL = os.getenv(
@@ -308,6 +330,15 @@ EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() in ('1', 'true', 'ye
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'no-reply@bluesky.local')
 
 SWAGGER_PUBLIC = os.getenv('SWAGGER_PUBLIC', 'true' if DEBUG else 'false').lower() in ('1', 'true', 'yes')
+
+SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False' if DEBUG else 'True').lower() in ('1', 'true', 'yes')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = os.getenv('USE_X_FORWARDED_HOST', 'False' if DEBUG else 'True').lower() in ('1', 'true', 'yes')
+SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '0' if DEBUG else '31536000'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv('SECURE_HSTS_INCLUDE_SUBDOMAINS', 'False' if DEBUG else 'True').lower() in ('1', 'true', 'yes')
+SECURE_HSTS_PRELOAD = os.getenv('SECURE_HSTS_PRELOAD', 'False' if DEBUG else 'True').lower() in ('1', 'true', 'yes')
+SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False' if DEBUG else 'True').lower() in ('1', 'true', 'yes')
+CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'False' if DEBUG else 'True').lower() in ('1', 'true', 'yes')
 
 # JWT
 SIMPLE_JWT = {

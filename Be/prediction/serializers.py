@@ -14,3 +14,5 @@ class PricePredictionInputSerializer(serializers.Serializer):
     floor_count = serializers.FloatField(required=False, min_value=0, default=3.0)
     bedroom_count = serializers.FloatField(required=False, min_value=0, default=3.0)
     bathroom_count = serializers.FloatField(required=False, min_value=0, default=2.0)
+    latitude = serializers.FloatField(required=True, min_value=8.0, max_value=24.0)
+    longitude = serializers.FloatField(required=True, min_value=102.0, max_value=110.0)

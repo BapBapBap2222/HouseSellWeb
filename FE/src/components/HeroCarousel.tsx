@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+﻿import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { ChevronLeft, ChevronRight, MapPin, ArrowRight, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -151,7 +151,7 @@ export const HeroCarousel = memo(({ isAppLoaded = true, onLoadComplete }: { isAp
                     Into Address
                 </h1>
                 
-                <p className="text-lg md:text-xl text-white/90 max-w-2xl mb-8 font-light drop-shadow-md">
+                <p className="text-lg md:text-xl text-white/90 max-w-2xl mb-8 font-normal drop-shadow-md">
                     Discover a place you'll love to live. We verify every listing, so you can find your dream home with confidence.
                 </p>
 
@@ -256,3 +256,4 @@ export const HeroCarousel = memo(({ isAppLoaded = true, onLoadComplete }: { isAp
     </section>
   );
 });
+

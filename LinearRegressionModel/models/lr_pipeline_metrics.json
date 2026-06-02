@@ -1,15 +1,34 @@
 {
-  "mae": 9237683605.863203,
-  "rmse": 16591262348.540613,
-  "r2": 0.2733119808433506,
-  "train_rows": 200000,
-  "test_rows": 50000,
+  "dataset_source": "tinixai/vietnam-real-estates parquet shards",
+  "model_type": "Ridge linear regression with log1p target",
+  "mae": 5229624242.192104,
+  "rmse": 19789985455.498375,
+  "r2": -0.3709782128270025,
+  "train_rows": 240000,
+  "test_rows": 60000,
   "features": [
     "property_type_name",
     "province_name",
+    "district_name",
+    "ward_name",
     "area",
     "floor_count",
     "bedroom_count",
-    "bathroom_count"
-  ]
+    "bathroom_count",
+    "province_market_score"
+  ],
+  "province_coverage": 63,
+  "province_market_scores": {
+    "Hà Nội": 2.1,
+    "Hồ Chí Minh": 2.05,
+    "Đà Nẵng": 1.05,
+    "Hải Phòng": 1.02,
+    "Bình Dương": 1.0,
+    "Đồng Nai": 0.98,
+    "Khánh Hòa": 0.96,
+    "Quảng Ninh": 0.95,
+    "Bà Rịa - Vũng Tàu": 0.95,
+    "Cần Thơ": 0.93
+  },
+  "default_market_score": 0.72
 }

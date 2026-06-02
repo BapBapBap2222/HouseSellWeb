@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Eye, EyeOff, Lock, CheckCircle2, Shield } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -80,7 +80,7 @@ export const Login = () => {
             transition={{ duration: 0.8 }}
           >
             <h1 className="text-5xl font-bold mb-4 leading-tight text-white">Welcome back</h1>
-            <p className="text-lg text-slate-300 font-light">
+            <p className="text-lg text-slate-300 font-normal">
               Find verified listings, trusted agents, and premium projects.
               <br />
               Experience the future of real estate trading.
@@ -225,3 +225,4 @@ export const Login = () => {
 };
 
 export default Login;
+

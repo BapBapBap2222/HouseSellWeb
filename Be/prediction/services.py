@@ -4,6 +4,32 @@ import pandas as pd
 from django.conf import settings
 
 
+PROVINCE_MARKET_SCORES = {
+    "Hà Nội": 2.10,
+    "Hồ Chí Minh": 2.05,
+    "Đà Nẵng": 1.05,
+    "Hải Phòng": 1.02,
+    "Bình Dương": 1.00,
+    "Đồng Nai": 0.98,
+    "Khánh Hòa": 0.96,
+    "Quảng Ninh": 0.95,
+    "Bà Rịa - Vũng Tàu": 0.95,
+    "Cần Thơ": 0.93,
+}
+DEFAULT_MARKET_SCORE = 0.72
+REGIONAL_CALIBRATION_MULTIPLIERS = {
+    "Hà Nội": 1.18,
+    "Hồ Chí Minh": 1.20,
+    "Đà Nẵng": 0.94,
+    "Quảng Nam": 0.82,
+    "Quảng Ngãi": 0.80,
+}
+
+
+def get_market_score(province_name: str) -> float:
+    return PROVINCE_MARKET_SCORES.get(str(province_name).strip(), DEFAULT_MARKET_SCORE)
+
+
 class PredictionService:
     """Service Layer for Vietnam house price prediction."""
 
@@ -38,11 +64,15 @@ class PredictionService:
         # 1. Extract and normalize variables from vietnam-real-estates schema.
         try:
             province_name = str(data.get("province_name", "Hà Nội")).strip() or "Hà Nội"
+            district_name = str(data.get("district_name", "")).strip()
+            ward_name = str(data.get("ward_name", "")).strip()
             property_type_name = str(data.get("property_type_name", "Nhà")).strip() or "Nhà"
             area = float(data.get("area", 80.0))
             floor_count = float(data.get("floor_count", 3.0))
             bedroom_count = float(data.get("bedroom_count", 3.0))
             bathroom_count = float(data.get("bathroom_count", 2.0))
+            latitude = float(data.get("latitude"))
+            longitude = float(data.get("longitude"))
         except (TypeError, ValueError):
             raise ValueError("Invalid numerical values provided in the payload.")
 
@@ -50,20 +80,26 @@ class PredictionService:
             raise ValueError("Field 'area' must be greater than 0.")
         if floor_count < 0 or bedroom_count < 0 or bathroom_count < 0:
             raise ValueError("floor_count, bedroom_count, bathroom_count must be >= 0.")
+        if not (8.0 <= latitude <= 24.0 and 102.0 <= longitude <= 110.0):
+            raise ValueError("Coordinates must be inside Vietnam.")
 
         # 2. Create DataFrame in the exact schema expected by the current model.
         input_data = pd.DataFrame([{
             "property_type_name": property_type_name,
             "province_name": province_name,
+            "district_name": district_name or "NA",
+            "ward_name": ward_name or "NA",
             "area": area,
             "floor_count": floor_count,
             "bedroom_count": bedroom_count,
             "bathroom_count": bathroom_count,
+            "province_market_score": get_market_score(province_name),
         }])
 
         # 3. Load model and predict.
         pipeline = PredictionService.get_model()
         predicted_price_vnd = float(pipeline.predict(input_data)[0])
+        predicted_price_vnd *= REGIONAL_CALIBRATION_MULTIPLIERS.get(province_name, 1.0)
         if predicted_price_vnd <= 0:
             predicted_price_vnd = 100_000_000.0
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock, CheckCircle2, Shield } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -124,7 +124,7 @@ export const Register = () => {
             transition={{ duration: 0.8 }}
           >
             <h1 className="text-5xl font-bold mb-4 leading-tight text-white">Join us today</h1>
-            <p className="text-lg text-slate-300 font-light">
+            <p className="text-lg text-slate-300 font-normal">
               Create your account to access exclusive listings and personalized market insights.
               <br />
               Your property journey starts here.
@@ -360,3 +360,4 @@ export const Register = () => {
 };
 
 export default Register;
+

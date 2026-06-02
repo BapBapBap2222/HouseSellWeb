@@ -57,6 +57,10 @@ const AddProperty = () => {
       const next = { ...prev, [field]: value };
       if (field === 'city') {
         next.district = '';
+        next.ward = '';
+      }
+      if (field === 'district') {
+        next.ward = '';
       }
       return next;
     });
