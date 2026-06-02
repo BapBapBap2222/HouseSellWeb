@@ -42,4 +42,47 @@ test.describe('Site audit smoke', () => {
     await page.getByRole('button', { name: 'Open saved listings' }).click();
     await expect(page).toHaveURL(/\/listings$/);
   });
+
+  test('home search filters only navigate when Search is submitted', async ({ page }) => {
+    await page.goto(BASE_URL);
+
+    await page.getByRole('button', { name: 'Price Range' }).click();
+    await page.getByLabel('Under 2B').check();
+    await expect(page).not.toHaveURL(/\/listings/);
+
+    await page.getByRole('button', { name: 'Bedrooms' }).click();
+    await page.getByRole('button', { name: '3' }).click();
+    await expect(page).not.toHaveURL(/\/listings/);
+
+    await page.getByPlaceholder('Enter area, street, project…').fill('Thao Dien');
+    await page.getByRole('button', { name: 'Search' }).click();
+
+    await expect(page).toHaveURL(/\/listings\?/);
+    await expect(page).toHaveURL(/search=Thao\+Dien/);
+    await expect(page).toHaveURL(/price=0-2/);
+    await expect(page).toHaveURL(/bedrooms=3/);
+  });
+
+  test('home location cards link to filtered listings', async ({ page }) => {
+    await page.goto(BASE_URL);
+
+    const hcmCard = page.locator('a[href="/listings?province=ho-chi-minh"]').first();
+    await hcmCard.scrollIntoViewIfNeeded();
+    await expect(hcmCard).toBeVisible();
+    await hcmCard.click();
+    await expect(page).toHaveURL(/\/listings\?province=ho-chi-minh$/);
+    await expect(page.getByText('Hồ Chí Minh').first()).toBeVisible();
+  });
+
+  test('listings search box reflects and updates query search', async ({ page }) => {
+    await page.goto(`${BASE_URL}/listings?search=Thao%20Dien&province=ho-chi-minh`);
+
+    const searchBox = page.getByPlaceholder('Search by title, street, district, province...');
+    await expect(searchBox).toHaveValue('Thao Dien');
+    await searchBox.fill('District 1');
+    await page.getByRole('button', { name: /^Search$/ }).click();
+
+    await expect(page).toHaveURL(/search=District\+1/);
+    await expect(page).toHaveURL(/province=ho-chi-minh/);
+  });
 });

@@ -19,6 +19,7 @@ export interface ListingFiltersState {
   priceRange: [number, number];
   selectedPricePreset: string | null;
   propertyTypes: string[];
+  bedrooms: number | null;
 }
 
 export const DEFAULT_LISTING_FILTERS: ListingFiltersState = {
@@ -28,6 +29,7 @@ export const DEFAULT_LISTING_FILTERS: ListingFiltersState = {
   priceRange: [0, 60],
   selectedPricePreset: null,
   propertyTypes: [],
+  bedrooms: null,
 };
 
 const PRICE_PRESETS: Array<{ label: string; value: string; range: [number, number] }> = [
@@ -44,6 +46,8 @@ const PROPERTY_TYPE_OPTIONS: Array<{ label: string; value: string }> = [
   { label: 'Land', value: 'land' },
   { label: 'Office', value: 'other' },
 ];
+
+const BEDROOM_OPTIONS = [1, 2, 3, 4, 5];
 
 interface FilterSidebarProps {
   value: ListingFiltersState;
@@ -215,6 +219,28 @@ export const FilterSidebar = ({ value, cities, districts, onChange }: FilterSide
                 {option.label}
               </label>
             </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="w-full h-px bg-border my-6" />
+
+      <div className="mb-8">
+        <h4 className="text-sm font-medium mb-3">Bedrooms</h4>
+        <div className="grid grid-cols-5 gap-2">
+          {BEDROOM_OPTIONS.map((bedroom) => (
+            <button
+              key={bedroom}
+              type="button"
+              onClick={() => onChange({ ...value, bedrooms: value.bedrooms === bedroom ? null : bedroom })}
+              className={`rounded-lg border px-2 py-2 text-sm font-semibold transition-colors ${
+                value.bedrooms === bedroom
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+              }`}
+            >
+              {bedroom === 5 ? '5+' : bedroom}
+            </button>
           ))}
         </div>
       </div>

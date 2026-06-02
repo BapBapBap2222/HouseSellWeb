@@ -5,31 +5,37 @@ import { Link } from 'react-router-dom';
 const locations = [
   {
     name: 'Ho Chi Minh City',
+    provinceSlug: 'ho-chi-minh',
     listings: '5,234',
     image: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600&auto=format&fit=crop',
   },
   {
     name: 'Hanoi',
+    provinceSlug: 'ha-noi',
     listings: '4,128',
     image: 'https://images.unsplash.com/photo-1509030450996-dd1a26dda07a?w=600&auto=format&fit=crop',
   },
   {
     name: 'Da Nang',
+    provinceSlug: 'da-nang',
     listings: '1,856',
     image: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=600&auto=format&fit=crop',
   },
   {
     name: 'Binh Duong',
+    provinceSlug: 'binh-duong',
     listings: '982',
     image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&auto=format&fit=crop',
   },
   {
     name: 'Dong Nai',
+    provinceSlug: 'dong-nai',
     listings: '756',
     image: 'https://images.unsplash.com/photo-1464082354059-27db6ce50048?w=600&auto=format&fit=crop',
   },
   {
     name: 'Hai Phong',
+    provinceSlug: 'hai-phong',
     listings: '634',
     image: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=600&auto=format&fit=crop',
   },
@@ -76,7 +82,7 @@ export const LocationTiles = () => {
               }}
             >
               <Link
-                to="/listings"
+                to={`/listings?province=${location.provinceSlug}`}
                 className="group relative aspect-[4/5] rounded-xl overflow-hidden card-hover block"
               >
                 <img

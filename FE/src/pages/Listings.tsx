@@ -1,6 +1,6 @@
 import { MouseEvent, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, ChevronDown, LayoutGrid, List } from 'lucide-react';
+import { Check, ChevronDown, LayoutGrid, List, Search, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Footer } from '@/components/Footer';
@@ -45,6 +45,28 @@ interface ListingViewModel {
 }
 
 const ITEMS_PER_PAGE = 30;
+const PRICE_PRESETS: Record<string, [number, number]> = {
+  '0-2': [0, 2],
+  '2-5': [2, 5],
+  '5-10': [5, 10],
+  '10-60': [10, 60],
+};
+
+const normalizeListingTypeParam = (value: string | null): ListingFiltersState['listingType'] =>
+  value === 'rent' ? 'rent' : 'buy';
+
+const parsePropertyTypesParam = (value: string | null): string[] =>
+  value
+    ? value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
+const parseBedroomsParam = (value: string | null): number | null => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
 
 const normalizeLocationValue = (value: string): string =>
   value
@@ -117,10 +139,10 @@ const mapPropertyToListing = (property: Property): ListingViewModel => {
 };
 
 const Listings = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { isLoggedIn } = useAuth();
-  const requestedType = searchParams.get('type') === 'rent' ? 'rent' : 'buy';
+  const requestedType = normalizeListingTypeParam(searchParams.get('type'));
   const requestedSearch = searchParams.get('search')?.trim() ?? '';
   useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
@@ -134,17 +156,26 @@ const Listings = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortBy>('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [searchInput, setSearchInput] = useState(requestedSearch);
   const [filters, setFilters] = useState<ListingFiltersState>(() => {
     const initial = getLocationLabelFromSlug(
       searchParams.get('province'),
       searchParams.get('location'),
     );
+    const selectedPricePreset = searchParams.get('price');
+    const priceRange = selectedPricePreset && PRICE_PRESETS[selectedPricePreset]
+      ? PRICE_PRESETS[selectedPricePreset]
+      : DEFAULT_LISTING_FILTERS.priceRange;
 
     return {
       ...DEFAULT_LISTING_FILTERS,
       listingType: requestedType,
       city: initial.city,
       district: initial.district,
+      selectedPricePreset: selectedPricePreset && PRICE_PRESETS[selectedPricePreset] ? selectedPricePreset : null,
+      priceRange,
+      propertyTypes: parsePropertyTypesParam(searchParams.get('property_type')),
+      bedrooms: parseBedroomsParam(searchParams.get('bedrooms')),
     };
   });
 
@@ -191,13 +222,24 @@ const Listings = () => {
       searchParams.get('province'),
       searchParams.get('location'),
     );
-    const nextListingType = searchParams.get('type') === 'rent' ? 'rent' : 'buy';
+    const nextListingType = normalizeListingTypeParam(searchParams.get('type'));
+    const nextPricePreset = searchParams.get('price');
+    const nextPriceRange = nextPricePreset && PRICE_PRESETS[nextPricePreset]
+      ? PRICE_PRESETS[nextPricePreset]
+      : DEFAULT_LISTING_FILTERS.priceRange;
+    const nextPropertyTypes = parsePropertyTypesParam(searchParams.get('property_type'));
+    const nextBedrooms = parseBedroomsParam(searchParams.get('bedrooms'));
 
     setFilters((current) => {
       if (
         current.city === next.city &&
         current.district === next.district &&
-        current.listingType === nextListingType
+        current.listingType === nextListingType &&
+        current.selectedPricePreset === (nextPricePreset && PRICE_PRESETS[nextPricePreset] ? nextPricePreset : null) &&
+        current.priceRange[0] === nextPriceRange[0] &&
+        current.priceRange[1] === nextPriceRange[1] &&
+        current.bedrooms === nextBedrooms &&
+        current.propertyTypes.join(',') === nextPropertyTypes.join(',')
       ) {
         return current;
       }
@@ -207,9 +249,17 @@ const Listings = () => {
         listingType: nextListingType,
         city: next.city,
         district: next.district,
+        selectedPricePreset: nextPricePreset && PRICE_PRESETS[nextPricePreset] ? nextPricePreset : null,
+        priceRange: nextPriceRange,
+        propertyTypes: nextPropertyTypes,
+        bedrooms: nextBedrooms,
       };
     });
   }, [searchParams]);
+
+  useEffect(() => {
+    setSearchInput(requestedSearch);
+  }, [requestedSearch]);
 
   const cityOptions = useMemo(() => {
     return dedupeLocations([
@@ -249,6 +299,13 @@ const Listings = () => {
       if (filters.city && normalizeLocationValue(item.city) !== normalizedCity) return false;
       if (filters.district && normalizeLocationValue(item.district) !== normalizedDistrict) return false;
       if (filters.propertyTypes.length > 0 && !filters.propertyTypes.includes(item.propertyType)) return false;
+      if (filters.bedrooms !== null) {
+        if (filters.bedrooms >= 5) {
+          if (item.beds < 5) return false;
+        } else if (item.beds !== filters.bedrooms) {
+          return false;
+        }
+      }
       if (normalizedSearch) {
         const haystack = normalizeLocationValue([
           item.title,
@@ -284,7 +341,7 @@ const Listings = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, sortBy]);
+  }, [filters, sortBy, requestedSearch]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -328,6 +385,17 @@ const Listings = () => {
     }
   };
 
+  const updateSearchParam = (value: string) => {
+    const params = new URLSearchParams(searchParams);
+    const trimmed = value.trim();
+    if (trimmed) {
+      params.set('search', trimmed);
+    } else {
+      params.delete('search');
+    }
+    setSearchParams(params);
+  };
+
   return (
     <div className="min-h-screen bg-[#F6F7F9]">
       <div className="bg-white">
@@ -351,11 +419,48 @@ const Listings = () => {
           </motion.aside>
 
           <div className="flex-1 min-w-0 flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-              <p className="text-muted-foreground">
-                Showing <span className="font-semibold text-foreground">{totalResults}</span> results
-              </p>
-              <div className="flex items-center gap-3">
+            <div className="mb-6 space-y-4">
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  updateSearchParam(searchInput);
+                }}
+                className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-3 shadow-sm md:flex-row md:items-center"
+              >
+                <div className="relative min-w-0 flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={searchInput}
+                    onChange={(event) => setSearchInput(event.target.value)}
+                    placeholder="Search by title, street, district, province..."
+                    className="h-11 w-full rounded-xl border border-transparent bg-secondary/40 pl-10 pr-10 text-sm outline-none transition-colors focus:border-primary/30 focus:bg-white"
+                  />
+                  {searchInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchInput('');
+                        updateSearchParam('');
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-white hover:text-foreground"
+                      aria-label="Clear search"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <Button type="submit" className="h-11 px-6">
+                  <Search className="h-4 w-4" />
+                  Search
+                </Button>
+              </form>
+
+              <div className="flex items-center justify-between">
+                <p className="text-muted-foreground">
+                  Showing <span className="font-semibold text-foreground">{totalResults}</span> results
+                </p>
+                <div className="flex items-center gap-3">
                 <div className="relative">
                   <Button
                     variant="outline"
@@ -426,6 +531,7 @@ const Listings = () => {
                     <List className="w-4 h-4" />
                   </button>
                 </div>
+              </div>
               </div>
             </div>
 

@@ -1,10 +1,29 @@
 import { useState } from 'react';
-import { Search, ChevronDown, MapPin, Wallet, CheckCircle2, Users, Shield } from 'lucide-react';
+import { Search, ChevronDown, CheckCircle2, Users, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 type TabType = 'buy' | 'rent';
+type PricePreset = { label: string; value: string; range: [number, number] };
+type PropertyTypeOption = { label: string; value: string };
+
+const PRICE_PRESETS: PricePreset[] = [
+  { label: 'Under 2B', value: '0-2', range: [0, 2] },
+  { label: '2B - 5B', value: '2-5', range: [2, 5] },
+  { label: '5B - 10B', value: '5-10', range: [5, 10] },
+  { label: 'Above 10B', value: '10-60', range: [10, 60] },
+];
+
+const BEDROOM_OPTIONS = ['1', '2', '3', '4', '5+'];
+
+const PROPERTY_TYPE_OPTIONS: PropertyTypeOption[] = [
+  { label: 'Apartment', value: 'apartment' },
+  { label: 'Townhouse', value: 'house' },
+  { label: 'Villa', value: 'villa' },
+  { label: 'Land', value: 'land' },
+  { label: 'Office', value: 'other' },
+];
 
 interface SearchModuleProps {
   onViewChange?: (view: 'left' | 'right' | 'top' | 'middle') => void;
@@ -14,6 +33,9 @@ export const SearchModule = ({ onViewChange }: SearchModuleProps) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('buy');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
+  const [selectedBedrooms, setSelectedBedrooms] = useState<string | null>(null);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [priceOpen, setPriceOpen] = useState(false);
   const [bedsOpen, setBedsOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
@@ -23,6 +45,20 @@ export const SearchModule = ({ onViewChange }: SearchModuleProps) => {
     { icon: <Users className="w-5 h-5" />, label: 'Verified Agents' },
     { icon: <Shield className="w-5 h-5" />, label: 'Legal Support' },
   ];
+
+  const selectedPriceLabel = PRICE_PRESETS.find((item) => item.value === selectedPrice)?.label ?? 'Price Range';
+  const selectedBedroomLabel = selectedBedrooms ? `${selectedBedrooms} Bedrooms` : 'Bedrooms';
+  const selectedTypeLabel = selectedTypes.length === 0
+    ? 'Property Type'
+    : selectedTypes.length === 1
+      ? PROPERTY_TYPE_OPTIONS.find((item) => item.value === selectedTypes[0])?.label ?? 'Property Type'
+      : `${selectedTypes.length} Types`;
+
+  const toggleType = (value: string) => {
+    setSelectedTypes((current) =>
+      current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
+    );
+  };
 
   return (
     <motion.div
@@ -34,6 +70,7 @@ export const SearchModule = ({ onViewChange }: SearchModuleProps) => {
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 mb-4 justify-center">
         <button
+          type="button"
           onClick={() => setActiveTab('buy')}
           className={cn(
             "px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 shadow-sm",
@@ -45,6 +82,7 @@ export const SearchModule = ({ onViewChange }: SearchModuleProps) => {
           Buy
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('rent')}
           className={cn(
             "px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 shadow-sm",
@@ -65,6 +103,9 @@ export const SearchModule = ({ onViewChange }: SearchModuleProps) => {
           const params = new URLSearchParams();
           if (activeTab === 'rent') params.set('type', 'rent');
           if (searchQuery.trim()) params.set('search', searchQuery.trim());
+          if (selectedPrice) params.set('price', selectedPrice);
+          if (selectedBedrooms) params.set('bedrooms', selectedBedrooms.replace('+', ''));
+          if (selectedTypes.length > 0) params.set('property_type', selectedTypes.join(','));
           navigate(`/listings${params.toString() ? `?${params.toString()}` : ''}`);
         }}
       >
@@ -85,31 +126,28 @@ export const SearchModule = ({ onViewChange }: SearchModuleProps) => {
           {/* Price Range */}
           <div className="relative">
             <button
+              type="button"
               onClick={() => setPriceOpen(!priceOpen)}
               className="chip chip-default flex items-center gap-2"
             >
-              <span>Price Range</span>
+              <span>{selectedPriceLabel}</span>
               <ChevronDown className="w-4 h-4" />
             </button>
             {priceOpen && (
               <div className="absolute top-full mt-2 left-0 bg-white rounded-lg shadow-lg border border-border p-4 z-10 min-w-[200px]">
                 <div className="space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-muted p-2 rounded">
-                    <input type="radio" name="price" className="accent-accent" />
-                    <span className="text-sm">Under 1B</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-muted p-2 rounded">
-                    <input type="radio" name="price" className="accent-accent" />
-                    <span className="text-sm">1 - 3B</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-muted p-2 rounded">
-                    <input type="radio" name="price" className="accent-accent" />
-                    <span className="text-sm">3 - 5B</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-muted p-2 rounded">
-                    <input type="radio" name="price" className="accent-accent" />
-                    <span className="text-sm">Above 5B</span>
-                  </label>
+                  {PRICE_PRESETS.map((preset) => (
+                    <label key={preset.value} className="flex items-center gap-2 cursor-pointer hover:bg-muted p-2 rounded">
+                      <input
+                        type="radio"
+                        name="price"
+                        checked={selectedPrice === preset.value}
+                        onChange={() => setSelectedPrice(preset.value)}
+                        className="accent-accent"
+                      />
+                      <span className="text-sm">{preset.label}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
             )}
@@ -118,19 +156,25 @@ export const SearchModule = ({ onViewChange }: SearchModuleProps) => {
           {/* Bedrooms */}
           <div className="relative">
             <button
+              type="button"
               onClick={() => setBedsOpen(!bedsOpen)}
               className="chip chip-default flex items-center gap-2"
             >
-              <span>Bedrooms</span>
+              <span>{selectedBedroomLabel}</span>
               <ChevronDown className="w-4 h-4" />
             </button>
             {bedsOpen && (
               <div className="absolute top-full mt-2 left-0 bg-white rounded-lg shadow-lg border border-border p-4 z-10 min-w-[180px]">
                 <div className="flex flex-wrap gap-2">
-                  {['1', '2', '3', '4', '5+'].map((num) => (
+                  {BEDROOM_OPTIONS.map((num) => (
                     <button
                       key={num}
-                      className="chip chip-default text-sm px-4 py-2"
+                      type="button"
+                      onClick={() => setSelectedBedrooms(selectedBedrooms === num ? null : num)}
+                      className={cn(
+                        'chip text-sm px-4 py-2',
+                        selectedBedrooms === num ? 'chip-active' : 'chip-default',
+                      )}
                     >
                       {num}
                     </button>
@@ -143,19 +187,25 @@ export const SearchModule = ({ onViewChange }: SearchModuleProps) => {
           {/* Property Type */}
           <div className="relative">
             <button
+              type="button"
               onClick={() => setTypeOpen(!typeOpen)}
               className="chip chip-default flex items-center gap-2"
             >
-              <span>Property Type</span>
+              <span>{selectedTypeLabel}</span>
               <ChevronDown className="w-4 h-4" />
             </button>
             {typeOpen && (
               <div className="absolute top-full mt-2 left-0 bg-white rounded-lg shadow-lg border border-border p-4 z-10 min-w-[200px]">
                 <div className="space-y-2">
-                  {['Apartment', 'Townhouse', 'Villa', 'Land', 'Office'].map((type) => (
-                    <label key={type} className="flex items-center gap-2 cursor-pointer hover:bg-muted p-2 rounded">
-                      <input type="checkbox" className="accent-accent" />
-                      <span className="text-sm">{type}</span>
+                  {PROPERTY_TYPE_OPTIONS.map((type) => (
+                    <label key={type.value} className="flex items-center gap-2 cursor-pointer hover:bg-muted p-2 rounded">
+                      <input
+                        type="checkbox"
+                        checked={selectedTypes.includes(type.value)}
+                        onChange={() => toggleType(type.value)}
+                        className="accent-accent"
+                      />
+                      <span className="text-sm">{type.label}</span>
                     </label>
                   ))}
                 </div>
