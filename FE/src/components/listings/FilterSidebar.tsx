@@ -70,6 +70,7 @@ export const FilterSidebar = ({ value, cities, districts, onChange }: FilterSide
       onChange({
         ...value,
         selectedPricePreset: null,
+        priceRange: DEFAULT_LISTING_FILTERS.priceRange,
       });
       return;
     }

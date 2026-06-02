@@ -99,4 +99,15 @@ test.describe('Site audit smoke', () => {
     await expect(page).toHaveURL(/\/listings\?province=ho-chi-minh&location=quan-1$/);
     await expect(page.locator('[role="combobox"]').nth(1)).toContainText('Quận 1');
   });
+
+  test('listing price preset resets range when unchecked', async ({ page }) => {
+    await page.goto(`${BASE_URL}/listings?province=ho-chi-minh`);
+
+    const under2b = page.getByLabel('Under 2B');
+    await under2b.click();
+    await expect(page.getByText('2B+')).toBeVisible();
+
+    await under2b.click();
+    await expect(page.getByText('60B+')).toBeVisible();
+  });
 });
