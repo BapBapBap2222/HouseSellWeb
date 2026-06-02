@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, ChevronDown, MapPin, Wallet, CheckCircle2, Users, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 type TabType = 'buy' | 'rent';
@@ -10,7 +11,9 @@ interface SearchModuleProps {
 }
 
 export const SearchModule = ({ onViewChange }: SearchModuleProps) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('buy');
+  const [searchQuery, setSearchQuery] = useState('');
   const [priceOpen, setPriceOpen] = useState(false);
   const [bedsOpen, setBedsOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
@@ -55,13 +58,24 @@ export const SearchModule = ({ onViewChange }: SearchModuleProps) => {
       </div>
 
       {/* Search Box */}
-      <div className="bg-white rounded-xl shadow-xl p-4 md:p-6">
+      <form
+        className="bg-white rounded-xl shadow-xl p-4 md:p-6"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const params = new URLSearchParams();
+          if (activeTab === 'rent') params.set('type', 'rent');
+          if (searchQuery.trim()) params.set('search', searchQuery.trim());
+          navigate(`/listings${params.toString() ? `?${params.toString()}` : ''}`);
+        }}
+      >
         {/* Search Input */}
         <div className="relative mb-4">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <input
             type="text"
             placeholder="Enter area, street, project…"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
             className="input-field pl-12"
           />
         </div>
@@ -151,14 +165,14 @@ export const SearchModule = ({ onViewChange }: SearchModuleProps) => {
         </div>
 
         {/* Search Button */}
-        <button 
-          onClick={() => window.location.href = '/listings'}
+        <button
+          type="submit"
           className="btn-primary w-full flex items-center justify-center gap-2"
         >
           <Search className="w-5 h-5" />
           <span>Search</span>
         </button>
-      </div>
+      </form>
 
       {/* Trust Indicators */}
       <div className="flex flex-wrap justify-center items-center gap-6 mt-8 text-muted-foreground">

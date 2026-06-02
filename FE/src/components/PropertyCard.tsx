@@ -1,3 +1,4 @@
+import { MouseEvent } from 'react';
 import { Heart, MapPin, Bed, Bath, Maximize } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -14,7 +15,9 @@ interface PropertyCardProps {
   area: number;
   isVerified?: boolean;
   isNew?: boolean;
+  isSaved?: boolean;
   className?: string;
+  onToggleFavorite?: (event: MouseEvent<HTMLButtonElement>) => void;
 }
 
 export const PropertyCard = ({
@@ -28,7 +31,9 @@ export const PropertyCard = ({
   area,
   isVerified = false,
   isNew = false,
-  className
+  isSaved = false,
+  className,
+  onToggleFavorite
 }: PropertyCardProps) => {
   const card = (
     <motion.div
@@ -50,10 +55,12 @@ export const PropertyCard = ({
 
         {/* Save Button */}
         <button
-          onClick={(e) => e.preventDefault()}
+          type="button"
+          onClick={onToggleFavorite}
           className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-white transition-all"
+          aria-label={isSaved ? 'Remove from saved listings' : 'Save listing'}
         >
-          <Heart className="w-5 h-5" />
+          <Heart className={cn('w-5 h-5', isSaved && 'text-red-500 fill-red-500')} />
         </button>
 
         {/* Price Tag */}
@@ -98,4 +105,3 @@ export const PropertyCard = ({
 
   return card;
 };
-

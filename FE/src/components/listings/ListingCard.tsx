@@ -1,3 +1,4 @@
+import { MouseEvent } from 'react';
 import { Heart, MapPin, Bed, Bath, Maximize } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -13,7 +14,9 @@ interface ListingCardProps {
   area: number;
   type: string;
   isSelected?: boolean;
+  isSaved?: boolean;
   onClick?: () => void;
+  onToggleFavorite?: (event: MouseEvent<HTMLButtonElement>) => void;
 }
 
 export const ListingCard = ({
@@ -26,7 +29,9 @@ export const ListingCard = ({
   area,
   type,
   isSelected,
-  onClick
+  isSaved = false,
+  onClick,
+  onToggleFavorite
 }: ListingCardProps) => {
   return (
     <div 
@@ -47,8 +52,13 @@ export const ListingCard = ({
                 {type}
             </span>
         </div>
-        <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-white transition-all">
-          <Heart className="w-4 h-4" />
+        <button
+          type="button"
+          onClick={onToggleFavorite}
+          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-white transition-all"
+          aria-label={isSaved ? 'Remove from saved listings' : 'Save listing'}
+        >
+          <Heart className={cn('w-4 h-4', isSaved && 'text-red-500 fill-red-500')} />
         </button>
       </div>
 

@@ -1,7 +1,7 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { MouseEvent, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, ChevronDown, LayoutGrid, List } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
@@ -18,7 +18,8 @@ import { Pagination } from '@/components/listings/Pagination';
 import { VIETNAM_ADMINISTRATIVE_UNITS } from '@/data/vietnamAdministrative';
 import { VIETNAM_PROVINCES } from '@/data/provinces';
 import { cn } from '@/lib/utils';
-import { getImageUrl, getProperties, normalizeListResponse, Property } from '@/lib/propertiesApi';
+import { useAuth } from '@/contexts/AuthContext';
+import { getImageUrl, getProperties, normalizeListResponse, Property, toggleFavorite } from '@/lib/propertiesApi';
 
 type ViewMode = 'grid' | 'list';
 type SortBy = 'newest' | 'price-asc' | 'price-desc';
@@ -38,6 +39,7 @@ interface ListingViewModel {
   district: string;
   listingType: 'sale' | 'rent';
   propertyType: 'house' | 'apartment' | 'land' | 'villa' | 'other';
+  isFavorited: boolean;
   latitude: number | null;
   longitude: number | null;
 }
@@ -108,6 +110,7 @@ const mapPropertyToListing = (property: Property): ListingViewModel => {
     district: property.district || '',
     listingType: property.listing_type,
     propertyType: property.property_type,
+    isFavorited: Boolean(property.is_favorited),
     latitude: property.latitude ?? null,
     longitude: property.longitude ?? null,
   };
@@ -115,7 +118,10 @@ const mapPropertyToListing = (property: Property): ListingViewModel => {
 
 const Listings = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
   const requestedType = searchParams.get('type') === 'rent' ? 'rent' : 'buy';
+  const requestedSearch = searchParams.get('search')?.trim() ?? '';
   useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
@@ -234,6 +240,7 @@ const Listings = () => {
     const listingTypeValue = filters.listingType === 'buy' ? 'sale' : 'rent';
     const normalizedCity = normalizeLocationValue(filters.city);
     const normalizedDistrict = normalizeLocationValue(filters.district);
+    const normalizedSearch = normalizeLocationValue(requestedSearch);
 
     return allListings.filter((item) => {
       const priceBillion = item.rawPrice / 1_000_000_000;
@@ -242,9 +249,19 @@ const Listings = () => {
       if (filters.city && normalizeLocationValue(item.city) !== normalizedCity) return false;
       if (filters.district && normalizeLocationValue(item.district) !== normalizedDistrict) return false;
       if (filters.propertyTypes.length > 0 && !filters.propertyTypes.includes(item.propertyType)) return false;
+      if (normalizedSearch) {
+        const haystack = normalizeLocationValue([
+          item.title,
+          item.address,
+          item.city,
+          item.district,
+          item.type,
+        ].filter(Boolean).join(' '));
+        if (!haystack.includes(normalizedSearch)) return false;
+      }
       return true;
     });
-  }, [allListings, filters]);
+  }, [allListings, filters, requestedSearch]);
 
   const sortedListings = useMemo(() => {
     const cloned = [...filteredListings];
@@ -282,6 +299,34 @@ const Listings = () => {
       setSelectedListing(null);
     }
   }, [selectedListing, sortedListings]);
+
+  const handleToggleFavorite = async (
+    propertyId: number,
+    event: MouseEvent<HTMLButtonElement>,
+  ) => {
+    event.stopPropagation();
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+
+    const previous = allListings.find((item) => item.id === propertyId)?.isFavorited ?? false;
+    setAllListings((current) =>
+      current.map((item) => item.id === propertyId ? { ...item, isFavorited: !previous } : item),
+    );
+
+    try {
+      const result = await toggleFavorite(propertyId);
+      setAllListings((current) =>
+        current.map((item) => item.id === propertyId ? { ...item, isFavorited: result.is_favorited } : item),
+      );
+    } catch {
+      setAllListings((current) =>
+        current.map((item) => item.id === propertyId ? { ...item, isFavorited: previous } : item),
+      );
+      setError('Cannot update favorite right now. Please try again.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F6F7F9]">
@@ -433,12 +478,16 @@ const Listings = () => {
                           {...listing}
                           isSelected={selectedListing?.id === listing.id}
                           onClick={() => setSelectedListing(listing)}
+                          isSaved={listing.isFavorited}
+                          onToggleFavorite={(event) => handleToggleFavorite(listing.id, event)}
                         />
                       ) : (
                         <ListingRow
                           {...listing}
                           isSelected={selectedListing?.id === listing.id}
                           onClick={() => setSelectedListing(listing)}
+                          isSaved={listing.isFavorited}
+                          onToggleFavorite={(event) => handleToggleFavorite(listing.id, event)}
                         />
                       )}
                     </motion.div>

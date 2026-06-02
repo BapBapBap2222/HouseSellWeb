@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { MapPin, ChevronRight, Building, Waves, Trees, Car } from 'lucide-react';
+import { MapPin, ChevronRight, Waves, Trees, Car } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const projects = [
   {
@@ -55,10 +56,10 @@ export const NewProjects = () => {
               Latest updates from top real estate developers
             </p>
           </div>
-          <a href="#" className="text-accent font-medium flex items-center gap-1 hover:gap-2 transition-all">
+          <Link to="/listings" className="text-accent font-medium flex items-center gap-1 hover:gap-2 transition-all">
             View all projects
             <ChevronRight className="w-5 h-5" />
-          </a>
+          </Link>
         </div>
 
         {/* Projects Grid */}
@@ -82,8 +83,9 @@ export const NewProjects = () => {
                 hidden: { opacity: 0, y: 30 },
                 visible: { opacity: 1, y: 0 }
               }}
-              className="card-elevated card-hover overflow-hidden group cursor-pointer"
+              className="card-elevated card-hover overflow-hidden group"
             >
+              <Link to={`/listings?search=${encodeURIComponent(project.name)}`} className="block h-full">
               {/* Image */}
               <div className="relative aspect-[16/10] overflow-hidden">
                 <img
@@ -150,6 +152,7 @@ export const NewProjects = () => {
                   ))}
                 </div>
               </div>
+              </Link>
             </motion.div>
           ))}
         </motion.div>

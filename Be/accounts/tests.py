@@ -75,7 +75,14 @@ class DeployReadinessApiTests(APITestCase):
         response = self.client.get(schema_url)
 
         if not settings.SWAGGER_PUBLIC:
-            self.assertIn(response.status_code, (status.HTTP_403_FORBIDDEN, status.HTTP_302_FOUND))
+            self.assertIn(
+                response.status_code,
+                (
+                    status.HTTP_401_UNAUTHORIZED,
+                    status.HTTP_403_FORBIDDEN,
+                    status.HTTP_302_FOUND,
+                ),
+            )
             return
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)

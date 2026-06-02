@@ -1,44 +1,50 @@
-import { Building2, Facebook, Instagram, Linkedin, Twitter, Mail, Phone, MapPin, Youtube } from "lucide-react";
+import { Facebook, Instagram, Mail, MapPin, Phone, Youtube } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const footerLinks = {
   company: {
     title: 'Company',
     links: [
-      { label: 'About Us', href: '#' },
-      { label: 'Careers', href: '#' },
-      { label: 'News', href: '#' },
-      { label: 'Contact', href: '#' },
+      { label: 'Explore', href: '/explore' },
+      { label: 'Agents', href: '/agents' },
+      { label: 'News', href: '/news' },
+      { label: 'Listings', href: '/listings' },
     ],
   },
   services: {
     title: 'Services',
     links: [
-      { label: 'Brokerage', href: '#' },
-      { label: 'Valuation', href: '#' },
-      { label: 'Legal Consultancy', href: '#' },
-      { label: 'Project Management', href: '#' },
+      { label: 'Buy', href: '/listings?type=sale' },
+      { label: 'Rent', href: '/listings?type=rent' },
+      { label: 'Prediction', href: '/prediction' },
+      { label: 'Sell Property', href: '/add-property' },
     ],
   },
   support: {
     title: 'Support',
     links: [
-      { label: 'Help Center', href: '#' },
-      { label: 'Terms of Service', href: '#' },
-      { label: 'Privacy Policy', href: '#' },
-      { label: 'Sitemap', href: '#' },
+      { label: 'Profile', href: '/profile' },
+      { label: 'Terms of Service', href: '/terms' },
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Admin', href: '/admin-dashboard' },
     ],
   },
   legal: {
     title: 'Legal',
     links: [
-      { label: 'Terms of Use', href: '#' },
-      { label: 'Operating Regulations', href: '#' },
-      { label: 'Privacy Policy', href: '#' },
-      { label: 'Dispute Resolution', href: '#' },
+      { label: 'Terms of Use', href: '/terms' },
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Cookie Policy', href: '/privacy#cookies' },
+      { label: 'Dispute Resolution', href: '/terms#disputes' },
     ],
   },
 };
+
+const socialLinks = [
+  { label: 'Facebook', href: 'https://www.facebook.com/', icon: Facebook },
+  { label: 'YouTube', href: 'https://www.youtube.com/', icon: Youtube },
+  { label: 'Instagram', href: 'https://www.instagram.com/', icon: Instagram },
+];
 
 export const Footer = () => {
   return (
@@ -74,15 +80,18 @@ export const Footer = () => {
 
             {/* Social Icons */}
             <div className="flex items-center gap-3">
-              <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-accent transition-colors">
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-accent transition-colors">
-                <Youtube className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-accent transition-colors">
-                <Instagram className="w-5 h-5" />
-              </a>
+              {socialLinks.map(({ label, href, icon: Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={label}
+                  className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-accent transition-colors"
+                >
+                  <Icon className="w-5 h-5" />
+                </a>
+              ))}
             </div>
           </div>
 
@@ -93,9 +102,9 @@ export const Footer = () => {
                 <ul className="space-y-3">
                   {column.links.map((link) => (
                     <li key={link.label}>
-                      <a href={link.href} className="text-muted-foreground hover:text-primary transition-colors">
+                      <Link to={link.href} className="text-muted-foreground hover:text-primary transition-colors">
                         {link.label}
-                      </a>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -109,24 +118,24 @@ export const Footer = () => {
             <div>
               <p className="text-white/70 mb-2">Download Blue Sky App</p>
               <div className="flex gap-3">
-                <a href="#" className="bg-white/10 hover:bg-white/20 transition-colors rounded-lg px-4 py-2 flex items-center gap-2">
+                <Link to="/listings" className="bg-white/10 hover:bg-white/20 transition-colors rounded-lg px-4 py-2 flex items-center gap-2">
                   <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
                   </svg>
                   <div className="text-left">
-                    <p className="text-[10px] text-white/60">Download on the</p>
-                    <p className="text-sm font-medium">App Store</p>
+                    <p className="text-[10px] text-white/60">Open</p>
+                    <p className="text-sm font-medium">Listings</p>
                   </div>
-                </a>
-                <a href="#" className="bg-white/10 hover:bg-white/20 transition-colors rounded-lg px-4 py-2 flex items-center gap-2">
+                </Link>
+                <Link to="/prediction" className="bg-white/10 hover:bg-white/20 transition-colors rounded-lg px-4 py-2 flex items-center gap-2">
                   <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 010 1.73l-2.808 1.626L15.206 12l2.492-2.491zM5.864 2.658L16.8 9.991l-2.302 2.302-8.634-8.635z"/>
                   </svg>
                   <div className="text-left">
-                    <p className="text-[10px] text-white/60">Get it on</p>
-                    <p className="text-sm font-medium">Google Play</p>
+                    <p className="text-[10px] text-white/60">Open</p>
+                    <p className="text-sm font-medium">Prediction</p>
                   </div>
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -149,7 +158,7 @@ export const Footer = () => {
             <ul className="flex items-center gap-8">
                 <li><Link to="/privacy" className="text-slate-400 hover:text-white transition-colors">Privacy Policy</Link></li>
                 <li><Link to="/terms" className="text-slate-400 hover:text-white transition-colors">Terms of Service</Link></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Cookie Policy</a></li>
+                <li><Link to="/privacy#cookies" className="hover:text-primary transition-colors">Cookie Policy</Link></li>
             </ul>
           </div>
         </div>

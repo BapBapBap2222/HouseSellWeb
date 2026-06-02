@@ -89,9 +89,6 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
 ];
 
 const CHART_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const CHART_DATA = {
-  revenue: [1.2, 2.8, 5.5, 4.2, 3.8, 8.2, 12.5, 10.8, 9.6, 15.2, 13.0, 18.5],
-};
 
 const countWords = (value: string) => value.trim().split(/\s+/).filter(Boolean).length;
 
@@ -162,6 +159,7 @@ const Profile = () => {
   const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [sellListings, setSellListings] = useState<SellItem[]>([]);
   const [loadingSellListings, setLoadingSellListings] = useState(false);
+  const [selectedRevenueYear, setSelectedRevenueYear] = useState(new Date().getFullYear());
   const [editingInfo, setEditingInfo] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
   const [editingIntro, setEditingIntro] = useState(false);
@@ -418,6 +416,21 @@ const Profile = () => {
   const paginatedSell = sellListings.slice((sellPage - 1) * sellItemsPerPage, sellPage * sellItemsPerPage);
   const totalSellPages = Math.max(1, Math.ceil(sellListings.length / sellItemsPerPage));
   const totalSellValue = sellListings.reduce((sum, item) => sum + item.rawPrice, 0);
+  const revenueYears = Array.from(
+    new Set([
+      new Date().getFullYear(),
+      ...sellListings.map((item) => new Date(item.createdAt).getFullYear()).filter((year) => Number.isFinite(year)),
+    ]),
+  ).sort((a, b) => b - a);
+  const revenueByMonth = CHART_LABELS.map((_, monthIndex) => {
+    const monthValue = sellListings
+      .filter((item) => {
+        const createdAt = new Date(item.createdAt);
+        return createdAt.getFullYear() === selectedRevenueYear && createdAt.getMonth() === monthIndex;
+      })
+      .reduce((sum, item) => sum + item.rawPrice, 0);
+    return Number((monthValue / 1_000_000_000).toFixed(2));
+  });
   const latestActivities = [...sellListings]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 2);
@@ -792,9 +805,14 @@ const Profile = () => {
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                   <div className="flex justify-between items-center mb-5">
                     <h3 className="text-lg font-bold text-gray-900">Revenue</h3>
-                    <select className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-gray-500 cursor-pointer outline-none focus:border-[#14B8A6] transition-colors">
-                      <option>Year 2025</option>
-                      <option>Year 2024</option>
+                    <select
+                      value={selectedRevenueYear}
+                      onChange={(event) => setSelectedRevenueYear(Number(event.target.value))}
+                      className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-gray-500 cursor-pointer outline-none focus:border-[#14B8A6] transition-colors"
+                    >
+                      {revenueYears.map((year) => (
+                        <option key={year} value={year}>Year {year}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -805,7 +823,7 @@ const Profile = () => {
                         datasets: [
                           {
                             label: "Revenue (Billion VND)",
-                            data: CHART_DATA.revenue,
+                            data: revenueByMonth,
                             borderColor: "#14B8A6",
                             backgroundColor: "rgba(20, 184, 166, 0.12)",
                             fill: true,
@@ -879,6 +897,7 @@ const Profile = () => {
                       {latestActivities.map((activity) => (
                         <div
                           key={activity.id}
+                          onClick={() => navigate(`/manage-property/${activity.id}`)}
                           className="border border-gray-100 rounded-xl p-4 hover:border-[#14B8A6]/30 hover:shadow-sm transition-all cursor-pointer group"
                         >
                           <div className="flex items-center gap-2 mb-2">
@@ -938,6 +957,7 @@ const Profile = () => {
                   paginatedBuy.map((appointment) => (
                     <div
                       key={appointment.id}
+                      onClick={() => navigate(`/appointment/${appointment.id}`)}
                       className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-5 flex flex-col md:flex-row items-center gap-5 cursor-pointer group"
                     >
                       <img
@@ -976,7 +996,7 @@ const Profile = () => {
                           {appointment.status}
                         </span>
 
-                        <Link to={`/appointment/${appointment.id}`}>
+                        <Link to={`/appointment/${appointment.id}`} onClick={(event) => event.stopPropagation()}>
                           <Button
                             variant="outline"
                             size="sm"

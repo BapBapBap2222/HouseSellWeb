@@ -1,5 +1,5 @@
 ﻿import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Activity,
@@ -68,11 +68,11 @@ const MARKET_STATS = [
 ];
 
 const TOP_PROVINCES = [
-  { name: 'Ho Chi Minh City', avgPrice: '72M', change: '+5.2%', listings: 8420, positive: true },
-  { name: 'Hanoi', avgPrice: '62M', change: '+3.8%', listings: 6180, positive: true },
-  { name: 'Da Nang', avgPrice: '40M', change: '+6.1%', listings: 3250, positive: true },
-  { name: 'Binh Duong', avgPrice: '28M', change: '+4.5%', listings: 2890, positive: true },
-  { name: 'Nha Trang', avgPrice: '35M', change: '-1.2%', listings: 1640, positive: false },
+  { name: 'Ho Chi Minh City', slug: 'ho-chi-minh', avgPrice: '72M', change: '+5.2%', listings: 8420, positive: true },
+  { name: 'Hanoi', slug: 'ha-noi', avgPrice: '62M', change: '+3.8%', listings: 6180, positive: true },
+  { name: 'Da Nang', slug: 'da-nang', avgPrice: '40M', change: '+6.1%', listings: 3250, positive: true },
+  { name: 'Binh Duong', slug: 'binh-duong', avgPrice: '28M', change: '+4.5%', listings: 2890, positive: true },
+  { name: 'Nha Trang', slug: 'khanh-hoa', avgPrice: '35M', change: '-1.2%', listings: 1640, positive: false },
 ];
 
 const LATEST_NEWS_PAGE_SIZE = 7;
@@ -290,7 +290,7 @@ function StatCard({ stat, index }: { stat: typeof MARKET_STATS[0]; index: number
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       viewport={{ once: true }}
-      className="group cursor-pointer rounded-2xl border border-slate-100 bg-white p-5 transition-all duration-300 hover:border-slate-200 hover:shadow-lg"
+      className="group rounded-2xl border border-slate-100 bg-white p-5 transition-all duration-300 hover:border-slate-200 hover:shadow-lg"
     >
       <div className="mb-3 flex items-start justify-between">
         <div className="rounded-xl bg-gradient-to-br from-teal-50 to-sky-50 p-2.5 text-teal-600 transition-transform duration-300 group-hover:scale-110">
@@ -314,8 +314,9 @@ function NewsCard({ article, index }: { article: NewsCardArticle; index: number 
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: index * 0.08 }}
       viewport={{ once: true }}
-      className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-all duration-300 hover:border-slate-200 hover:shadow-xl"
+      className="group flex overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-all duration-300 hover:border-slate-200 hover:shadow-xl"
     >
+      <Link to={`/news/${article.id}`} className="flex flex-1 flex-col">
       <div className="relative h-48 overflow-hidden">
         <img
           src={article.image}
@@ -336,6 +337,7 @@ function NewsCard({ article, index }: { article: NewsCardArticle; index: number 
         </h3>
         <p className="flex-1 line-clamp-3 text-sm leading-relaxed text-slate-500">{article.excerpt}</p>
       </div>
+      </Link>
     </motion.article>
   );
 }
@@ -538,8 +540,9 @@ const News = () => {
 
                 <div className="space-y-3">
                   {TOP_PROVINCES.map((province, index) => (
-                    <div
+                    <Link
                       key={province.name}
+                      to={`/listings?province=${province.slug}`}
                       className="group flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3 transition-all hover:border-slate-200 hover:bg-slate-50"
                     >
                       <span className="w-6 text-center text-sm font-bold text-slate-400">{index + 1}</span>
@@ -554,7 +557,7 @@ const News = () => {
                           {province.change}
                         </p>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
 

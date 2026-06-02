@@ -1,7 +1,8 @@
 ﻿import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
-import { ChevronLeft, ChevronRight, MapPin, ArrowRight, Bookmark } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import { OptimizedImage } from '@/components/common/OptimizedImage';
 import thaodienImg from '@/assets/images/thaodien.jpg';
 import nhatrangImg from '@/assets/images/nhatrang.jpg';
@@ -49,6 +50,7 @@ const SLIDES = [
 ];
 
 export const HeroCarousel = memo(({ isAppLoaded = true, onLoadComplete }: { isAppLoaded?: boolean, onLoadComplete?: () => void }) => {
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const containerRef = useRef(null);
@@ -158,11 +160,14 @@ export const HeroCarousel = memo(({ isAppLoaded = true, onLoadComplete }: { isAp
                 <div className="flex items-center gap-4">
                      <Button 
                         className="bg-transparent hover:bg-white/20 text-white border border-white/40 rounded-full w-12 h-12 p-0 backdrop-blur-md transition-all"
+                        aria-label="Open saved listings"
+                        onClick={() => navigate('/listings')}
                     >
                         <Bookmark className="w-5 h-5" />
                     </Button>
                     <Button 
                         className="bg-white text-black hover:bg-white/90 border-none rounded-full h-12 px-8 uppercase tracking-widest text-xs font-bold shadow-lg flex items-center gap-2 group transition-all"
+                        onClick={() => navigate('/explore')}
                     >
                         Discover Location
                         <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

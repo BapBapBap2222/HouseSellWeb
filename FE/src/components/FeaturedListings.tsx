@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { MouseEvent, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PropertyCard } from './PropertyCard';
-import { getImageUrl, getProperties, normalizeListResponse, Property } from '@/lib/propertiesApi';
+import { useAuth } from '@/contexts/AuthContext';
+import { getImageUrl, getProperties, normalizeListResponse, Property, toggleFavorite } from '@/lib/propertiesApi';
 
 const filterChips = ['All', 'Apartment', 'Townhouse', 'Land', 'Office'];
 
@@ -19,6 +20,7 @@ interface FeaturedListingItem {
   area: number;
   isVerified: boolean;
   isNew: boolean;
+  isFavorited: boolean;
   propertyType: 'house' | 'apartment' | 'land' | 'villa' | 'other';
 }
 
@@ -52,11 +54,14 @@ const toFeaturedItem = (property: Property): FeaturedListingItem => {
     area: Number(property.area || 0),
     isVerified: Boolean(property.is_featured),
     isNew,
+    isFavorited: Boolean(property.is_favorited),
     propertyType: property.property_type,
   };
 };
 
 export const FeaturedListings = () => {
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
   const [activeFilter, setActiveFilter] = useState('All');
   const [listings, setListings] = useState<FeaturedListingItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,6 +114,34 @@ export const FeaturedListings = () => {
     if (!propertyType) return listings.slice(0, 6);
     return listings.filter((listing) => listing.propertyType === propertyType).slice(0, 6);
   }, [activeFilter, listings]);
+
+  const handleToggleFavorite = async (
+    propertyId: number,
+    event: MouseEvent<HTMLButtonElement>,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+
+    const previous = listings.find((item) => item.id === propertyId)?.isFavorited ?? false;
+    setListings((current) =>
+      current.map((item) => item.id === propertyId ? { ...item, isFavorited: !previous } : item),
+    );
+
+    try {
+      const result = await toggleFavorite(propertyId);
+      setListings((current) =>
+        current.map((item) => item.id === propertyId ? { ...item, isFavorited: result.is_favorited } : item),
+      );
+    } catch {
+      setListings((current) =>
+        current.map((item) => item.id === propertyId ? { ...item, isFavorited: previous } : item),
+      );
+    }
+  };
 
   return (
     <section className="section-padding bg-surface">
@@ -163,7 +196,11 @@ export const FeaturedListings = () => {
                   visible: { opacity: 1, y: 0 },
                 }}
               >
-                <PropertyCard {...listing} />
+                <PropertyCard
+                  {...listing}
+                  isSaved={listing.isFavorited}
+                  onToggleFavorite={(event) => handleToggleFavorite(listing.id, event)}
+                />
               </motion.div>
             ))}
           </motion.div>

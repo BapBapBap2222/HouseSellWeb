@@ -94,6 +94,7 @@ export const DetailPanel = ({ listing, onClose }: DetailPanelProps) => {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -235,6 +236,27 @@ export const DetailPanel = ({ listing, onClose }: DetailPanelProps) => {
     }
   };
 
+  const handleShare = async () => {
+    const title = property?.title || listing.title;
+    const url = `${window.location.origin}/property/${listing.id}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, url });
+        setShareMessage('Property link shared.');
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareMessage('Property link copied.');
+      }
+    } catch (err) {
+      if ((err as { name?: string })?.name !== 'AbortError') {
+        setShareMessage('Cannot share this property right now.');
+      }
+    } finally {
+      window.setTimeout(() => setShareMessage(''), 2400);
+    }
+  };
+
   if (!listing) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground bg-white rounded-xl border border-border">
@@ -249,7 +271,11 @@ export const DetailPanel = ({ listing, onClose }: DetailPanelProps) => {
         <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent h-full w-full pb-6">
           <div className="relative h-48 w-full">
             <img src={gallery[0]?.src || FALLBACK_IMAGE} alt={listing.title} className="w-full h-full object-cover" />
-            <button className="absolute top-4 right-14 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors">
+            <button
+              onClick={handleShare}
+              className="absolute top-4 right-14 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
+              title="Share property"
+            >
               <Share2 className="w-4 h-4" />
             </button>
             <button
@@ -384,6 +410,11 @@ export const DetailPanel = ({ listing, onClose }: DetailPanelProps) => {
             {bookingError && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
                 {bookingError}
+              </div>
+            )}
+            {shareMessage && (
+              <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-700">
+                {shareMessage}
               </div>
             )}
 

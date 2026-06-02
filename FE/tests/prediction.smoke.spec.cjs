@@ -21,8 +21,9 @@ test.describe('Prediction smoke', () => {
   test('header exposes Explore and Agents routes', async ({ page }) => {
     await page.goto(BASE_URL);
 
-    await expect(page.getByRole('link', { name: 'Explore' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Agents' })).toBeVisible();
+    const nav = page.getByRole('navigation');
+    await expect(nav.getByRole('link', { name: 'Explore' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Agents' })).toBeVisible();
   });
 
   test('location selectors expose provinces, districts, and wards', async ({ page }) => {

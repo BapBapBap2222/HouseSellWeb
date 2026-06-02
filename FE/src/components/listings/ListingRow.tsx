@@ -1,3 +1,4 @@
+import { MouseEvent } from 'react';
 import { Heart, MapPin, Bed, Bath, Maximize } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -13,7 +14,9 @@ interface ListingRowProps {
   area: number;
   type: string;
   isSelected?: boolean;
+  isSaved?: boolean;
   onClick?: () => void;
+  onToggleFavorite?: (event: MouseEvent<HTMLButtonElement>) => void;
 }
 
 export const ListingRow = ({
@@ -26,7 +29,9 @@ export const ListingRow = ({
   area,
   type,
   isSelected,
-  onClick
+  isSaved = false,
+  onClick,
+  onToggleFavorite
 }: ListingRowProps) => {
   return (
     <div 
@@ -46,8 +51,13 @@ export const ListingRow = ({
         <div className="absolute top-2 left-2 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium text-foreground">
           {type}
         </div>
-        <button className="absolute top-2 right-2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors group/heart">
-          <Heart className="w-4 h-4 text-muted-foreground group-hover/heart:text-red-500 group-hover/heart:fill-current transition-colors" />
+        <button
+          type="button"
+          onClick={onToggleFavorite}
+          className="absolute top-2 right-2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors group/heart"
+          aria-label={isSaved ? 'Remove from saved listings' : 'Save listing'}
+        >
+          <Heart className={cn('w-4 h-4 text-muted-foreground group-hover/heart:text-red-500 group-hover/heart:fill-current transition-colors', isSaved && 'text-red-500 fill-red-500')} />
         </button>
       </div>
 

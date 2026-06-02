@@ -86,6 +86,101 @@ Lý do chỉnh ngày 02/06/2026:
 - `npm run build`: pass
 - `npm run test`: pass 1/1
 
+## Audit web toàn bộ ngày 02/06/2026
+
+Mục tiêu của vòng này là duyệt lại route, nút bấm, chart, trang tin tức, footer/header và các flow chính để giảm tình trạng nút nhìn bấm được nhưng không có chức năng.
+
+### Frontend đã hoàn thiện thêm
+
+- Header/home:
+  - Nút `Discover Location` điều hướng thật sang `/explore`.
+  - Nút icon lưu trong hero điều hướng sang `/listings`.
+  - Ô search ở hero đã gửi keyword sang `/listings?search=...`.
+  - Tab `Buy/Rent` ở hero đã ảnh hưởng route danh sách, rent đi `/listings?type=rent`.
+
+- Listings:
+  - Danh sách đã lọc được theo query `search` từ hero/project card.
+  - Nút trái tim trong card grid/list đã gọi API favorite thật.
+  - Nếu chưa đăng nhập và bấm favorite, user được đưa về `/login`.
+  - Trạng thái favorite được cập nhật optimistic và rollback nếu API lỗi.
+
+- Featured listings:
+  - Nút trái tim trong card featured đã gọi API favorite thật.
+  - Không còn nút chặn click nhưng không có chức năng.
+
+- Property detail:
+  - Nút share dùng Web Share API nếu browser hỗ trợ.
+  - Nếu không hỗ trợ share, tự copy link vào clipboard.
+  - Có thông báo kết quả share/copy.
+
+- Appointment detail:
+  - Nút share lịch hẹn đã hoạt động thật.
+  - Nút trái tim ở ảnh lịch hẹn được chuyển thành link mở property liên quan hoặc `/listings`.
+
+- News:
+  - Thêm route chi tiết tin tức `/news/:id`.
+  - Card tin tức bấm được vào trang chi tiết.
+  - Top provinces bấm được sang listings theo province.
+  - Footer không còn link `#` giả.
+
+- Profile:
+  - Chart doanh thu không còn dùng data cứng.
+  - Chart lấy dữ liệu từ listing bán của user theo năm đang chọn.
+  - Card property/appointment trong profile có điều hướng tới trang quản lý/chi tiết tương ứng.
+
+- NotFound:
+  - Chuyển anchor reload trang sang `Link` của React Router.
+  - Hiển thị path đang bị lỗi để dễ debug.
+
+### Test audit đã thêm
+
+- Thêm file `FE/tests/site.audit.spec.cjs`.
+- Test các route public:
+  - `/`
+  - `/listings`
+  - `/agents`
+  - `/explore`
+  - `/news`
+  - `/news/1`
+  - `/prediction`
+  - `/privacy`
+  - `/terms`
+- Mỗi route kiểm tra:
+  - Body render được.
+  - Không còn `a[href="#"]`.
+  - Không có page error từ browser.
+- Test protected route `/profile` tự redirect về `/login`.
+- Test CTA ở home điều hướng đúng.
+
+### Kết quả kiểm thử mới nhất
+
+- `npm run lint`: pass, còn 5 warning Fast Refresh cũ.
+- `npm run build`: pass, còn warning chunk size và dynamic/static import của Footer.
+- `npm run test`: pass 1/1.
+- `python manage.py test`: pass 51/51.
+- `npx playwright test tests/site.audit.spec.cjs --reporter=line`: pass 11/11.
+- `npx playwright test tests/prediction.smoke.spec.cjs --reporter=line`: pass 5/5.
+- API smoke local:
+  - Register: pass.
+  - Login: pass.
+  - `/api/auth/users/me/`: pass.
+  - `/api/properties/`: trả 105 items.
+  - `/api/agents/`: trả 32 items.
+  - `/api/news/`: trả 10 items.
+  - `/api/prediction/`: trả kết quả estimate hợp lệ.
+
+### Lưu ý còn lại trước khi bàn giao production
+
+- Local đã chạy ổn với FE `http://127.0.0.1:5173` và BE `http://127.0.0.1:8000`.
+- Muốn production nhận code mới, cần push nhánh `new` và deploy lại Vercel/Render theo branch/environment tương ứng.
+- Render backend cần có đúng env production:
+  - `HSW_DB_*`
+  - `SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - các bucket Supabase
+  - `CORS_ALLOWED_ORIGINS=https://djangofe.vercel.app`
+- Vercel frontend cần `VITE_API_BASE_URL=https://djangobe-pz4a.onrender.com`.
+
 ## Lưu ý
 
 - `train_vietnam_lr.py` hiện là wrapper gọi `train_vietnam_model.py`, để không train nhầm sang pipeline parquet cũ.

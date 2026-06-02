@@ -22,6 +22,7 @@ import AppointmentDetail from "./pages/AppointmentDetail";
 import ManageProperty from "./pages/ManageProperty";
 import AddProperty from "./pages/AddProperty";
 import News from "./pages/News";
+import NewsDetail from "./pages/NewsDetail";
 import PropertyDetail from "./pages/PropertyDetail";
 import PricePrediction from "./pages/PricePrediction";
 import Agents from "./pages/Agents";
@@ -41,6 +42,7 @@ const App = () => (
             {/* ── Public routes ── */}
             <Route path="/" element={<Index />} />
             <Route path="/news" element={<News />} />
+            <Route path="/news/:id" element={<NewsDetail />} />
             <Route path="/prediction" element={<PricePrediction />} />
             <Route path="/listings" element={<Listings />} />
             <Route path="/agents" element={<Agents />} />

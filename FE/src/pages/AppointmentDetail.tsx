@@ -83,6 +83,7 @@ const AppointmentDetail = () => {
   const [error, setError] = useState('');
   const [activeImage, setActiveImage] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
 
   useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
@@ -158,6 +159,25 @@ const AppointmentDetail = () => {
     }
   };
 
+  const handleShare = async () => {
+    const url = `${window.location.origin}/appointment/${appointment?.id ?? id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: appointment?.property_title ?? 'Viewing appointment', url });
+        setShareMessage('Appointment link shared.');
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareMessage('Appointment link copied.');
+      }
+    } catch (err) {
+      if ((err as { name?: string })?.name !== 'AbortError') {
+        setShareMessage('Cannot share this appointment right now.');
+      }
+    } finally {
+      window.setTimeout(() => setShareMessage(''), 2400);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F6F7F9]">
@@ -212,12 +232,21 @@ const AppointmentDetail = () => {
                 className="w-full h-full object-cover"
               />
               <div className="absolute top-4 right-4 flex gap-3">
-                <button className="w-10 h-10 rounded-full bg-white/90 shadow-sm flex items-center justify-center hover:bg-white transition-all text-gray-600">
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="w-10 h-10 rounded-full bg-white/90 shadow-sm flex items-center justify-center hover:bg-white transition-all text-gray-600"
+                  aria-label="Share appointment"
+                >
                   <Share2 className="w-5 h-5" />
                 </button>
-                <button className="w-10 h-10 rounded-full bg-white/90 shadow-sm flex items-center justify-center hover:bg-white transition-all text-red-500">
+                <Link
+                  to={property ? `/property/${property.id}` : '/listings'}
+                  className="w-10 h-10 rounded-full bg-white/90 shadow-sm flex items-center justify-center hover:bg-white transition-all text-red-500"
+                  aria-label="Open property"
+                >
                   <Heart className="w-5 h-5 fill-current" />
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -348,6 +377,11 @@ const AppointmentDetail = () => {
                 </div>
 
                 <div className="space-y-3">
+                  {shareMessage && (
+                    <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700">
+                      {shareMessage}
+                    </div>
+                  )}
                   <Button
                     variant="outline"
                     className={cn(
