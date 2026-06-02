@@ -1,23 +1,41 @@
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound, PermissionDenied
 
+from properties.models import Property
+
+from .pagination import AgentPageNumberPagination
 from .models import Agent, AgentReview
 from .serializers import AgentDetailSerializer, AgentListSerializer, AgentReviewSerializer
 
 
 class AgentListView(generics.ListAPIView):
     serializer_class = AgentListSerializer
+    pagination_class = AgentPageNumberPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ["full_name", "specialization", "city", "tagline", "bio"]
 
     def get_queryset(self):
+        visible_properties = (
+            Property.objects.filter(is_active=True)
+            .only("id", "owner_id", "city", "created_at")
+            .order_by("-created_at")
+        )
+
         return (
             Agent.objects.exclude(Q(user__is_staff=True) | Q(user__is_superuser=True))
             .filter(Q(user__isnull=True) | Q(user__profile__profile_visible=True))
+            .select_related("user", "user__profile")
+            .prefetch_related(
+                Prefetch(
+                    "user__properties",
+                    queryset=visible_properties,
+                    to_attr="visible_agent_properties",
+                )
+            )
         )
 
 
@@ -29,6 +47,7 @@ class AgentDetailView(generics.RetrieveAPIView):
         return (
             Agent.objects.exclude(Q(user__is_staff=True) | Q(user__is_superuser=True))
             .filter(Q(user__isnull=True) | Q(user__profile__profile_visible=True))
+            .select_related("user", "user__profile")
         )
 
 

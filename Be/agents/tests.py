@@ -22,12 +22,39 @@ class AgentVisibilityApiTests(APITestCase):
 
         list_response = self.client.get(reverse("agent-list"))
         self.assertEqual(list_response.status_code, status.HTTP_200_OK)
-        returned_slugs = {item["slug"] for item in list_response.data}
+        returned_slugs = {item["slug"] for item in list_response.data["results"]}
         self.assertIn(public_user.agent_profile.slug, returned_slugs)
         self.assertNotIn(private_user.agent_profile.slug, returned_slugs)
 
         detail_response = self.client.get(reverse("agent-detail", kwargs={"slug": private_user.agent_profile.slug}))
         self.assertEqual(detail_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_agent_list_is_limited_to_20_profiles_per_payload(self):
+        for _ in range(25):
+            user = TestDataFactory.create_user()
+            user.profile.profile_visible = True
+            user.profile.save(update_fields=["profile_visible"])
+
+        response = self.client.get(reverse("agent-list"), {"page_size": 50})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(response.data["count"], 25)
+        self.assertEqual(len(response.data["results"]), 20)
+
+    def test_agent_list_reuses_prefetched_properties_for_area_names(self):
+        user = TestDataFactory.create_user()
+        user.first_name = "Prefetched"
+        user.last_name = "Areas"
+        user.save(update_fields=["first_name", "last_name"])
+        user.profile.profile_visible = True
+        user.profile.save(update_fields=["profile_visible"])
+        TestDataFactory.create_property(owner=user, city="Da Nang")
+        TestDataFactory.create_property(owner=user, city="Hue")
+
+        response = self.client.get(reverse("agent-list"), {"search": "Prefetched Areas", "page_size": 1})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"][0]["areas"], ["Hue", "Da Nang"])
 
     def test_authenticated_user_can_rate_agent_and_update_existing_review(self):
         agent_user = TestDataFactory.create_user()

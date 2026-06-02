@@ -54,6 +54,12 @@ export interface CreateAgentReviewPayload {
   comment: string;
 }
 
+export interface AgentListQuery {
+  search?: string;
+  page?: number;
+  page_size?: number;
+}
+
 const normalizeAvatarUrl = (value: string) => {
   if (!value) return "";
   if (value.startsWith("http://") || value.startsWith("https://")) return value;
@@ -68,9 +74,13 @@ const normalizeAgent = <T extends { avatar_url: string; areas: string[]; languag
   languages: Array.isArray(agent.languages) ? agent.languages : [],
 });
 
-export const getAgents = async (search?: string): Promise<AgentListItem[]> => {
+export const getAgents = async (
+  query: AgentListQuery = {},
+  signal?: AbortSignal,
+): Promise<AgentListItem[]> => {
   const { data } = await api.get<AgentListItem[] | { results: AgentListItem[] }>("/api/agents/", {
-    params: search ? { search } : undefined,
+    params: query,
+    signal,
   });
 
   const items = Array.isArray(data) ? data : data.results;

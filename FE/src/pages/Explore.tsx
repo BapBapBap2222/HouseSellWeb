@@ -5,6 +5,7 @@ import { VIETNAM_ADMINISTRATIVE_UNITS } from '@/data/vietnamAdministrative';
 import { motion } from 'framer-motion';
 import { MapPin, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import exploreVietnamHero from '@/assets/images/explore-vietnam-cultural-hero.webp';
 
 const normalizeLocationValue = (value: string): string =>
   value
@@ -32,25 +33,39 @@ const Explore = () => {
   return (
     <div className="min-h-screen bg-[#F6F7F9]">
       <Header />
-      
-      {/* Hero Section */}
-      <section className="pt-40 pb-16 px-6">
-        <div className="max-w-[1440px] mx-auto">
+
+      <section className="relative overflow-hidden pt-32 md:pt-36">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${exploreVietnamHero})` }}
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/55 to-[#F6F7F9]" aria-hidden="true" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.7)_0%,rgba(255,255,255,0.38)_38%,rgba(255,255,255,0.18)_70%)]" aria-hidden="true" />
+
+        <div className="relative max-w-[1440px] mx-auto px-6 pb-14 md:pb-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-12"
+            className="mx-auto max-w-4xl text-center min-h-[360px] md:min-h-[460px] flex flex-col items-center justify-center"
           >
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              Explore <span className="bg-gradient-to-r from-[#4300FF] via-[#0065F8] via-[#00CAFF] to-[#00FFDE] bg-clip-text text-transparent">Vietnam</span>
+            <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/75 px-4 py-2 text-sm font-semibold text-sky-800 shadow-sm backdrop-blur">
+              <MapPin className="h-4 w-4" />
+              Vietnam property map
+            </span>
+            <h1 className="text-5xl md:text-7xl font-bold tracking-normal text-slate-950">
+              Explore <span className="text-sky-700">Vietnam</span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="mt-6 max-w-2xl text-lg md:text-xl leading-8 text-slate-700">
               Discover properties across all provinces and cities in Vietnam
             </p>
           </motion.div>
+        </div>
+      </section>
 
-          {/* Provinces Grid */}
+      <section className="px-6 pb-16">
+        <div className="max-w-[1440px] mx-auto">
           <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             initial="hidden"

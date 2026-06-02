@@ -34,25 +34,24 @@ const Agents = () => {
   const deferredSearch = useDeferredValue(searchText);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
 
     const loadAgents = async () => {
       setLoading(true);
       setError("");
 
       try {
-        const data = await getAgents();
-        if (!cancelled) {
-          setAgents(data);
-        }
+        const data = await getAgents({ page: 1, page_size: 20 }, controller.signal);
+        setAgents(data);
       } catch (fetchError) {
-        console.error("Failed to load agents:", fetchError);
-        if (!cancelled) {
-          setAgents([]);
-          setError("Could not load the trusted agent directory.");
+        if (controller.signal.aborted) {
+          return;
         }
+        console.error("Failed to load agents:", fetchError);
+        setAgents([]);
+        setError("Could not load the trusted agent directory.");
       } finally {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       }
@@ -61,7 +60,7 @@ const Agents = () => {
     loadAgents();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, []);
 

@@ -23,6 +23,24 @@ def get_visible_properties_for_agent(agent: Agent):
     )
 
 
+def get_agent_area_names(agent: Agent):
+    if not agent.user_id:
+        return (agent.areas or [])[:5]
+
+    prefetched_properties = getattr(agent.user, "visible_agent_properties", None)
+    properties = prefetched_properties if prefetched_properties is not None else get_visible_properties_for_agent(agent)
+    cities = []
+
+    for property_obj in properties:
+        city = (property_obj.city or "").strip()
+        if city and city not in cities:
+            cities.append(city)
+        if len(cities) >= 5:
+            break
+
+    return cities or (agent.areas or [])[:5]
+
+
 def get_property_image_url(property_obj: Property, request):
     image = property_obj.images.filter(is_primary=True).first() or property_obj.images.first()
     if not image:
@@ -55,17 +73,7 @@ class AgentListSerializer(serializers.ModelSerializer):
         ]
 
     def get_areas(self, agent: Agent):
-        if agent.user_id:
-            cities = []
-            for property_obj in get_visible_properties_for_agent(agent):
-                city = (property_obj.city or "").strip()
-                if city and city not in cities:
-                    cities.append(city)
-                if len(cities) >= 5:
-                    break
-            if cities:
-                return cities
-        return (agent.areas or [])[:5]
+        return get_agent_area_names(agent)
 
 
 class AgentDetailSerializer(serializers.ModelSerializer):
@@ -102,17 +110,7 @@ class AgentDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_areas(self, agent: Agent):
-        if agent.user_id:
-            cities = []
-            for property_obj in get_visible_properties_for_agent(agent):
-                city = (property_obj.city or "").strip()
-                if city and city not in cities:
-                    cities.append(city)
-                if len(cities) >= 5:
-                    break
-            if cities:
-                return cities
-        return (agent.areas or [])[:5]
+        return get_agent_area_names(agent)
 
     def get_activity_visible(self, agent: Agent):
         profile = getattr(agent.user, "profile", None) if agent.user_id else None

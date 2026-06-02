@@ -23,7 +23,7 @@ const baseNavLinks = [
   { label: "News", href: "/news" },
   { label: "Prediction", href: "/prediction" },
   { label: "Buy", href: "/listings?type=buy" },
-  { label: "Sell", href: "/listings?type=buy" },
+  { label: "Sell", href: "/add-property" },
   { label: "Rent", href: "/listings?type=rent" },
 ];
 

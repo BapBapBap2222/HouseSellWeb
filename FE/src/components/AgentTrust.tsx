@@ -6,6 +6,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAgentInitials } from "@/lib/agentProfile";
 import { AgentListItem, getAgents } from "@/lib/agentsApi";
 
+const HOMEPAGE_AGENT_LIMIT = 4;
+const TRUSTED_AGENTS_CACHE_TTL_MS = 60_000;
+
+let trustedAgentsCache: {
+  items: AgentListItem[];
+  cachedAt: number;
+} | null = null;
+
 const trustFeatures = [
   {
     icon: <Shield className="w-6 h-6" />,
@@ -25,18 +33,30 @@ const trustFeatures = [
 ];
 
 export const AgentTrust = () => {
-  const [agents, setAgents] = useState<AgentListItem[]>([]);
+  const [agents, setAgents] = useState<AgentListItem[]>(() => {
+    if (trustedAgentsCache && Date.now() - trustedAgentsCache.cachedAt < TRUSTED_AGENTS_CACHE_TTL_MS) {
+      return trustedAgentsCache.items;
+    }
+    return [];
+  });
 
   useEffect(() => {
-    let cancelled = false;
+    if (trustedAgentsCache && Date.now() - trustedAgentsCache.cachedAt < TRUSTED_AGENTS_CACHE_TTL_MS) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
 
     const loadAgents = async () => {
       try {
-        const data = await getAgents();
-        if (!cancelled) {
-          setAgents(data.slice(0, 4));
-        }
+        const data = await getAgents({ page: 1, page_size: HOMEPAGE_AGENT_LIMIT }, controller.signal);
+        const visibleAgents = data.slice(0, HOMEPAGE_AGENT_LIMIT);
+        trustedAgentsCache = { items: visibleAgents, cachedAt: Date.now() };
+        setAgents(visibleAgents);
       } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
         console.error("Failed to load trusted agents:", error);
       }
     };
@@ -44,7 +64,7 @@ export const AgentTrust = () => {
     loadAgents();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, []);
 

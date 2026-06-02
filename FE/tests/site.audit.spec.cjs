@@ -394,13 +394,13 @@ test.describe('Site audit smoke', () => {
     await expect(page.getByText('Owner controllable listing')).toHaveCount(0);
   });
 
-  test('header Sell link opens public sale listings', async ({ page }) => {
+  test('header Sell link opens the protected property submission flow', async ({ page }) => {
     await page.goto(BASE_URL);
-    const sellLink = page.locator('a[href="/listings?type=buy"]').filter({ hasText: 'Sell' }).first();
+    const sellLink = page.locator('a[href="/add-property"]').filter({ hasText: 'Sell' }).first();
     await expect(sellLink).toBeVisible();
     await sellLink.click();
 
-    await expect(page).toHaveURL(/\/listings\?type=buy$/);
+    await expect(page).toHaveURL(/\/login$/);
   });
 
   test('agent latest activity opens the public property detail page', async ({ page }) => {
