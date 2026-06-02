@@ -64,10 +64,19 @@ Dataset gốc Hugging Face vẫn còn trong:
 Cùng một căn nhà mẫu: `80m2`, `3 tầng`, `3 phòng ngủ`, `2 phòng tắm`, loại `Nhà`.
 
 - Hồ Chí Minh: khoảng `17.66 tỷ`
-- Hà Nội: khoảng `17.31 tỷ`
+- Hà Nội: khoảng `17.30 tỷ`
 - Đà Nẵng: khoảng `7.36 tỷ`
-- Quảng Nam: khoảng `2.54 tỷ`
-- Quảng Ngãi: khoảng `1.83 tỷ`
+- Quảng Nam: khoảng `4.58 tỷ`
+- Quảng Ngãi: khoảng `3.96 tỷ`
+
+Lý do chỉnh ngày 02/06/2026:
+
+- Baseline cũ đặt Quảng Nam `32 triệu/m2`, Quảng Ngãi `24 triệu/m2`, lại bị backend giảm multiplier, nên giá ra quá thấp.
+- Baseline mới đặt Quảng Nam `48 triệu/m2`, Quảng Ngãi `42 triệu/m2`.
+- Backend không còn kéo giảm riêng Quảng Nam/Quảng Ngãi.
+- Test prediction đã thêm ngưỡng tối thiểu để tránh hồi quy về giá quá rẻ:
+  - Quảng Nam phải lớn hơn `4 tỷ` cho căn mẫu.
+  - Quảng Ngãi phải lớn hơn `3.5 tỷ` cho căn mẫu.
 
 ## Kiểm thử đã chạy
 

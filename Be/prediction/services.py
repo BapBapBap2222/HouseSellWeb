@@ -23,8 +23,8 @@ REGIONAL_CALIBRATION_MULTIPLIERS = {
     "Hà Nội": 1.18,
     "Hồ Chí Minh": 1.20,
     "Đà Nẵng": 0.94,
-    "Quảng Nam": 0.82,
-    "Quảng Ngãi": 0.80,
+    "Quảng Nam": 1.00,
+    "Quảng Ngãi": 1.00,
 }
 
 

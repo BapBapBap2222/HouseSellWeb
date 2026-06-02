@@ -140,3 +140,5 @@ class PredictionModelRegionalOrderingTests(APITestCase):
         self.assertGreater(hanoi, quang_nam)
         self.assertGreater(hcm, quang_ngai)
         self.assertGreater(hanoi, quang_ngai)
+        self.assertGreater(quang_nam, 4_000_000_000)
+        self.assertGreater(quang_ngai, 3_500_000_000)
