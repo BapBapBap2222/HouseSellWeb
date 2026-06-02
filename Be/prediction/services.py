@@ -1,3 +1,5 @@
+import json
+import math
 import os
 import joblib
 import pandas as pd
@@ -34,16 +36,21 @@ class PredictionService:
     """Service Layer for Vietnam house price prediction."""
 
     _model_pipeline = None
+    _model_features = None
+
+    @classmethod
+    def _get_model_dir(cls):
+        return os.path.join(
+            settings.BASE_DIR.parent,
+            "LinearRegressionModel",
+            "models",
+        )
 
     @classmethod
     def get_model(cls):
         """Lazy-load machine learning model."""
         if cls._model_pipeline is None:
-            model_dir = os.path.join(
-                settings.BASE_DIR.parent,
-                "LinearRegressionModel",
-                "models",
-            )
+            model_dir = cls._get_model_dir()
             model_path = os.path.join(model_dir, "vietname.pkl")
             fallback_path = os.path.join(model_dir, "lr_pipeline.joblib")
             if not os.path.exists(model_path) and os.path.exists(fallback_path):
@@ -54,6 +61,41 @@ class PredictionService:
                 )
             cls._model_pipeline = joblib.load(model_path)
         return cls._model_pipeline
+
+    @classmethod
+    def get_model_features(cls) -> list[str]:
+        """Return the exact feature order expected by the loaded model."""
+        if cls._model_features is not None:
+            return cls._model_features
+
+        model = cls.get_model()
+        feature_names = getattr(model, "feature_names_in_", None)
+        if feature_names is not None:
+            cls._model_features = [str(feature) for feature in feature_names]
+            return cls._model_features
+
+        metadata_path = os.path.join(cls._get_model_dir(), "vietname_metadata.json")
+        if os.path.exists(metadata_path):
+            with open(metadata_path, "r", encoding="utf-8") as metadata_file:
+                metadata = json.load(metadata_file)
+            metadata_features = metadata.get("feature_columns") or metadata.get("features")
+            if metadata_features:
+                cls._model_features = [str(feature) for feature in metadata_features]
+                return cls._model_features
+
+        cls._model_features = [
+            "property_type_name",
+            "province_name",
+            "district_name",
+            "area",
+            "area_log",
+            "floor_count",
+            "bedroom_count",
+            "bathroom_count",
+            "latitude",
+            "longitude",
+        ]
+        return cls._model_features
 
     @staticmethod
     def predict_price(data: dict) -> dict:
@@ -83,18 +125,26 @@ class PredictionService:
         if not (8.0 <= latitude <= 24.0 and 102.0 <= longitude <= 110.0):
             raise ValueError("Coordinates must be inside Vietnam.")
 
-        # 2. Create DataFrame in the exact schema expected by the current model.
-        input_data = pd.DataFrame([{
+        # 2. Create DataFrame in the exact schema expected by the loaded model.
+        feature_values = {
             "property_type_name": property_type_name,
             "province_name": province_name,
             "district_name": district_name or "NA",
             "ward_name": ward_name or "NA",
             "area": area,
+            "area_log": math.log1p(area),
             "floor_count": floor_count,
             "bedroom_count": bedroom_count,
             "bathroom_count": bathroom_count,
+            "latitude": latitude,
+            "longitude": longitude,
             "province_market_score": get_market_score(province_name),
-        }])
+        }
+        feature_columns = PredictionService.get_model_features()
+        input_data = pd.DataFrame(
+            [{feature: feature_values.get(feature, "NA") for feature in feature_columns}],
+            columns=feature_columns,
+        )
 
         # 3. Load model and predict.
         pipeline = PredictionService.get_model()
