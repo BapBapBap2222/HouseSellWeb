@@ -30,9 +30,15 @@ Dataset gốc Hugging Face vẫn còn trong:
 
 ## Model đang dùng
 
-- Model production: `LinearRegressionModel/models/vietname.pkl`
-- Model alias: `LinearRegressionModel/models/lr_pipeline.joblib`
-- Hai file trên đã được đồng bộ cùng một model.
+- Model production runtime của backend: `BE/ml_models/vietname.pkl`
+- Model alias runtime của backend: `BE/ml_models/lr_pipeline.joblib`
+- Metadata/metrics runtime của backend:
+  - `BE/ml_models/vietname_metadata.json`
+  - `BE/ml_models/lr_pipeline_metrics.json`
+- Các file trong `BE/ml_models` đã được copy từ `LinearRegressionModel/models`.
+- Backend không còn phụ thuộc folder ngoài `BE` khi chạy predict.
+- `LinearRegressionModel` chỉ còn dùng để lưu dữ liệu/train/retrain model nếu cần.
+- `vietname.pkl` và `lr_pipeline.joblib` đã được đồng bộ cùng một model.
 - Loại model: `Ridge linear regression with log-transformed target`
 - Không dùng mô hình phi tuyến.
 - Metadata/metrics:
@@ -200,4 +206,4 @@ Mục tiêu của vòng này là duyệt lại route, nút bấm, chart, trang t
 ## Lưu ý
 
 - `train_vietnam_lr.py` hiện là wrapper gọi `train_vietnam_model.py`, để không train nhầm sang pipeline parquet cũ.
-- Nếu deploy production, Render phải redeploy backend để nhận lại model `vietname.pkl` mới.
+- Nếu deploy production, Render phải redeploy backend từ nhánh `new` để nhận `BE/ml_models/vietname.pkl` và CORS mới.

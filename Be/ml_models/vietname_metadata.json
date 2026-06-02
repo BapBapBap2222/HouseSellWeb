@@ -1,0 +1,31 @@
+{
+  "source_dataset": "tinixai/vietnam-real-estates",
+  "source_license": "cc-by-nc-4.0",
+  "source_rows_total": 3500744,
+  "raw_sample_rows": 2000,
+  "clean_geo_rows": 1815,
+  "coverage_rows": 17327,
+  "training_rows": 35000,
+  "training_province_count": 63,
+  "expected_province_count": 63,
+  "feature_columns": [
+    "property_type_name",
+    "province_name",
+    "district_name",
+    "area",
+    "area_log",
+    "floor_count",
+    "bedroom_count",
+    "bathroom_count",
+    "latitude",
+    "longitude"
+  ],
+  "target_column": "price",
+  "model_type": "Ridge linear regression with log-transformed target",
+  "mae_vnd": 1062219787,
+  "r2": 0.9465,
+  "model_file": "vietname.pkl",
+  "pipeline_file": "lr_pipeline.joblib",
+  "market_calibration_note": "Raw Hugging Face observations are blended with practical province-level VND/m2 guardrails, then coverage rows are added so all 63 old provinces are represented.",
+  "coordinate_note": "Dataset does not provide coordinates. Coordinates are assigned from province/district centers with deterministic ward/street jitter, then lightly augmented."
+}

@@ -40,11 +40,7 @@ class PredictionService:
 
     @classmethod
     def _get_model_dir(cls):
-        return os.path.join(
-            settings.BASE_DIR.parent,
-            "LinearRegressionModel",
-            "models",
-        )
+        return os.path.join(settings.BASE_DIR, "ml_models")
 
     @classmethod
     def get_model(cls):
