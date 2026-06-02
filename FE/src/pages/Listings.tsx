@@ -94,6 +94,42 @@ const dedupeLocations = (values: string[]): string[] => {
   return deduped.sort((a, b) => a.localeCompare(b, 'vi'));
 };
 
+const getAdministrativeProvince = (city: string) => {
+  const normalizedCity = normalizeLocationValue(city);
+  return VIETNAM_ADMINISTRATIVE_UNITS.find(
+    (item) =>
+      normalizeLocationValue(item.name) === normalizedCity ||
+      normalizeLocationValue(item.full_name) === normalizedCity,
+  );
+};
+
+const formatDistrictLabel = (city: string, district: string | null | undefined): string => {
+  const rawDistrict = String(district ?? '').trim();
+  if (!rawDistrict) return '';
+
+  const province = getAdministrativeProvince(city);
+  const normalizedDistrict = normalizeLocationValue(rawDistrict);
+  const matchedDistrict = province?.districts.find(
+    (item) =>
+      normalizeLocationValue(item.name) === normalizedDistrict ||
+      normalizeLocationValue(item.full_name) === normalizedDistrict,
+  );
+  if (matchedDistrict) {
+    return matchedDistrict.full_name || matchedDistrict.name;
+  }
+
+  const isHoChiMinh = normalizeLocationValue(city).includes('ho chi minh');
+  if (isHoChiMinh && /^\d+$/.test(rawDistrict)) {
+    return `Quận ${rawDistrict}`;
+  }
+  if (isHoChiMinh) {
+    const districtNumber = rawDistrict.match(/^district\s+(\d+)$/i)?.[1];
+    if (districtNumber) return `Quận ${districtNumber}`;
+  }
+
+  return rawDistrict;
+};
+
 const getLocationLabelFromSlug = (provinceSlug: string | null, locationSlug: string | null) => {
   const province = provinceSlug
     ? VIETNAM_PROVINCES.find((item) => item.slug === provinceSlug)
@@ -115,6 +151,7 @@ const formatVndPrice = (price: number): string => {
 
 const mapPropertyToListing = (property: Property): ListingViewModel => {
   const rawPrice = Number(property.price || 0);
+  const district = formatDistrictLabel(property.city || '', property.district);
   return {
     id: property.id,
     image: property.primary_image
@@ -123,13 +160,13 @@ const mapPropertyToListing = (property: Property): ListingViewModel => {
     price: formatVndPrice(rawPrice),
     rawPrice,
     title: property.title,
-    address: [property.address, property.ward, property.district, property.city].filter(Boolean).join(', '),
+    address: [property.address, property.ward, district, property.city].filter(Boolean).join(', '),
     beds: property.bedrooms ?? 0,
     baths: property.bathrooms ?? 0,
     area: Number(property.area || 0),
     type: property.property_type_display || property.property_type || 'Property',
     city: property.city || '',
-    district: property.district || '',
+    district,
     listingType: property.listing_type,
     propertyType: property.property_type,
     isFavorited: Boolean(property.is_favorited),
@@ -273,15 +310,18 @@ const Listings = () => {
     if (!filters.city) return [];
     const normalizedCity = normalizeLocationValue(filters.city);
     const province = VIETNAM_PROVINCES.find((item) => normalizeLocationValue(item.name) === normalizedCity);
-    const administrativeProvince = VIETNAM_ADMINISTRATIVE_UNITS.find((item) => normalizeLocationValue(item.name) === normalizedCity);
+    const administrativeProvince = getAdministrativeProvince(filters.city);
+
+    const referenceDistricts = administrativeProvince
+      ? administrativeProvince.districts.map((item) => item.full_name || item.name)
+      : province?.locations.map((item) => item.name) ?? [];
 
     return dedupeLocations([
       ...allListings
         .filter((item) => normalizeLocationValue(item.city) === normalizedCity)
         .map((item) => item.district)
         .filter(Boolean) as string[],
-      ...(province?.locations.map((item) => item.name) ?? []),
-      ...(administrativeProvince?.districts.map((item) => item.name) ?? []),
+      ...referenceDistricts,
     ]);
   }, [allListings, filters.city]);
 
