@@ -1,4 +1,4 @@
-﻿# Plan 006 - V6 AI Price Prediction (Vietnam Dataset)
+# Plan 006 - V6 AI Price Prediction (Vietnam Dataset)
 
 ## Checklist Tien Do
 
@@ -19,7 +19,7 @@
 ## Muc tieu
 
 1. Chuyen V6 prediction sang du lieu Vietnam (`tinixai/vietnam-real-estates`).
-2. Model runtime cua BE phai nhan tu file `LinearRegressionModel/models/vietname.pkl`.
+2. Model runtime cua BE phai nhan tu file `LinearRegressionModel/models/vietnam.pkl`.
 3. Endpoint `/api/prediction/` nhan payload schema Vietnam va tra response nhat quan cho FE.
 4. FE `PricePrediction` gui dung payload moi, hien thi ket qua on dinh, khong phu thuoc schema California.
 5. Co artifact contract/checklist va evidence verify theo 4 gate.
@@ -28,7 +28,7 @@
 
 - Prediction flow cu theo schema California (`ocean_proximity`, `total_rooms`, `median_income`, ...).
 - FE form/map/noi dung dang huong California.
-- Model runtime chua chot theo `vietname.pkl`.
+- Model runtime chua chot theo `vietnam.pkl`.
 - Guide v3 co endpoint mau `/api/predict/` va payload generic, can mapping sang implementation thuc te.
 
 ## Trang thai cap nhat theo code hien tai (as-built)
@@ -36,7 +36,7 @@
 - Da co script train model Vietnam:
   - `LinearRegressionModel/train_vietnam_lr.py`
 - Da export model:
-  - `LinearRegressionModel/models/vietname.pkl`
+  - `LinearRegressionModel/models/vietnam.pkl`
   - `LinearRegressionModel/models/lr_pipeline.joblib` (compat fallback)
   - `LinearRegressionModel/models/lr_pipeline_metrics.json`
 - BE prediction da doi schema Vietnam:
@@ -75,7 +75,7 @@
   - `confidence`
   - `price_per_m2`
 - Model loading rule:
-  - Uu tien `vietname.pkl`.
+  - Uu tien `vietnam.pkl`.
   - Fallback `lr_pipeline.joblib` (tam thoi de safe runtime).
 
 ### Frontend
@@ -101,7 +101,7 @@
 ## Done criteria
 
 1. `prediction-contract-mapping.md` chot ro guide vs runtime contract.
-2. `PredictionService` load duoc `vietname.pkl` va du doan thanh cong.
+2. `PredictionService` load duoc `vietnam.pkl` va du doan thanh cong.
 3. Serializer validate dung schema V6, reject payload sai.
 4. FE gui dung payload V6 va render ket qua tu API.
 5. Backend test `prediction` pass.

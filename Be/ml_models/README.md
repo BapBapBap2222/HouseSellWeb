@@ -6,7 +6,7 @@ deployed as a standalone repository without depending on the root-level
 
 Required files:
 
-- `vietname.pkl`
+- `vietnam.pkl`
 - `lr_pipeline.joblib`
-- `vietname_metadata.json`
+- `vietnam_metadata.json`
 - `lr_pipeline_metrics.json`

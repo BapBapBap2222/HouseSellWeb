@@ -1,4 +1,4 @@
-﻿# Prediction Contract Mapping - Plan 006
+# Prediction Contract Mapping - Plan 006
 
 ## 1) Contract tu Guide V3 (baseline)
 
@@ -86,7 +86,7 @@
 
 | Item | Runtime rule |
 |---|---|
-| Primary model file | `LinearRegressionModel/models/vietname.pkl` |
+| Primary model file | `LinearRegressionModel/models/vietnam.pkl` |
 | Fallback model file | `LinearRegressionModel/models/lr_pipeline.joblib` |
 | Training script | `LinearRegressionModel/train_vietnam_lr.py` |
 | Metrics artifact | `LinearRegressionModel/models/lr_pipeline_metrics.json` |
@@ -115,5 +115,5 @@
   - ho tro fallback/rollback trong truong hop can doi soat mo hinh cu.
 - Runtime V6 khong dung artifact California.
 - Runtime chi dung:
-  - primary: `LinearRegressionModel/models/vietname.pkl`
+  - primary: `LinearRegressionModel/models/vietnam.pkl`
   - fallback compat: `LinearRegressionModel/models/lr_pipeline.joblib`

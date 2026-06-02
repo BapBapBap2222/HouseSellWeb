@@ -1,4 +1,4 @@
-﻿# Prediction Regression Checklist - Plan 006
+# Prediction Regression Checklist - Plan 006
 
 ## Muc tieu
 - Smoke test nhanh luong prediction V6 theo schema Vietnam.
@@ -8,7 +8,7 @@
 - Backend: `http://localhost:8000`
 - Frontend: `http://localhost:8080`
 - Model file ton tai:
-  - `LinearRegressionModel/models/vietname.pkl`
+  - `LinearRegressionModel/models/vietnam.pkl`
 - Co it nhat 1 bo input hop le:
   - province_name=Ha Noi
   - property_type_name=Nha
@@ -39,7 +39,7 @@
 
 ### C04 - Model file missing handling
 - Buoc:
-  1. Tam doi ten `vietname.pkl` va fallback file.
+  1. Tam doi ten `vietnam.pkl` va fallback file.
   2. Goi API prediction.
 - Ky vong:
   - `500`

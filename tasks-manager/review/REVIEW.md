@@ -1,4 +1,4 @@
-﻿# REVIEW MEMORY
+# REVIEW MEMORY
 
 ## Plan 010 draft created - 2026-04-07
 
@@ -350,11 +350,11 @@
   - Chua smoke browser day du checklist.
   - Bundle size warning la issue legacy.
 
-### Plan 006 - Prediction V6 Vietnam dataset + vietname.pkl
+### Plan 006 - Prediction V6 Vietnam dataset + vietnam.pkl
 
 - Trang thai: DONE full (Logic/Nghiep vu/Security/Test = PASS, manual C05-C07 da dong).
 - Da thuc hien:
-  - Chuyen flow prediction sang schema Vietnam + artifact `vietname.pkl`.
+  - Chuyen flow prediction sang schema Vietnam + artifact `vietnam.pkl`.
   - Dong bo BE/FE contract V6.
   - Hoan tat 3 task gate yeu cau:
     - Logic: dong bo formula FE/BE (`price_max = 1.12`).
@@ -372,7 +372,7 @@
   - MySQL local default chua san sang (dang verify qua SQLite override cho test command).
   - Artifact legacy California van duoc giu de tham chieu lich su, can tiep tuc quan tri scope de tranh nham runtime.
 
-## Phien moi nhat (Plan 006 - V6 AI Prediction Vietnam dataset + vietname.pkl)
+## Phien moi nhat (Plan 006 - V6 AI Prediction Vietnam dataset + vietnam.pkl)
 
 ### Viec da lam
 
@@ -380,12 +380,12 @@
 - Da bo sung script train:
   - `LinearRegressionModel/train_vietnam_lr.py`
 - Da train va xuat artifact:
-  - `LinearRegressionModel/models/vietname.pkl`
+  - `LinearRegressionModel/models/vietnam.pkl`
   - `LinearRegressionModel/models/lr_pipeline.joblib`
   - `LinearRegressionModel/models/lr_pipeline_metrics.json`
 - Da cap nhat backend prediction:
   - `Be/prediction/serializers.py` (schema V6)
-  - `Be/prediction/services.py` (uu tien load `vietname.pkl`, fallback `lr_pipeline.joblib`)
+  - `Be/prediction/services.py` (uu tien load `vietnam.pkl`, fallback `lr_pipeline.joblib`)
   - `Be/prediction/tests.py` (valid + invalid payload)
 - Da cap nhat frontend prediction:
   - `FE/src/pages/PricePrediction.tsx`

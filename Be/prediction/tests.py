@@ -44,7 +44,7 @@ class PricePredictionApiTests(APITestCase):
     @patch("prediction.views.PredictionService.predict_price")
     def test_prediction_hides_internal_error_details(self, mock_predict):
         mock_predict.side_effect = FileNotFoundError(
-            "Machine learning model file not found at /secret/models/vietname.pkl"
+            "Machine learning model file not found at /secret/models/vietnam.pkl"
         )
         payload = {
             "province_name": "Ha Noi",

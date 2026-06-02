@@ -1,4 +1,4 @@
-﻿# Tasks chi tiet - Plan 006 (V6 AI Price Prediction Vietnam)
+# Tasks chi tiet - Plan 006 (V6 AI Price Prediction Vietnam)
 
 ## Quy tac thuc thi
 
@@ -56,12 +56,12 @@
 
 ### [x] T004 - Train model tu vietnam-real-estates va xuat artifact (DONE)
 - Skill chinh: `python-pro`
-- Muc tieu: train LR pipeline theo schema Vietnam, xuat `vietname.pkl`.
+- Muc tieu: train LR pipeline theo schema Vietnam, xuat `vietnam.pkl`.
 - Input:
   - `LinearRegressionModel/data/vietnam-real-estates/shard_*.parquet`
 - Output:
   - `LinearRegressionModel/train_vietnam_lr.py`
-  - `LinearRegressionModel/models/vietname.pkl`
+  - `LinearRegressionModel/models/vietnam.pkl`
   - `LinearRegressionModel/models/lr_pipeline.joblib`
   - `LinearRegressionModel/models/lr_pipeline_metrics.json`
 - Dependency: T003.
@@ -76,7 +76,7 @@
 ### [x] T006 - Chuan hoa service model loading + predict logic (DONE)
 - Skill chinh: `python-pro`
 - Muc tieu:
-  - load `vietname.pkl` (fallback `lr_pipeline.joblib`)
+  - load `vietnam.pkl` (fallback `lr_pipeline.joblib`)
   - map input feature dung thu tu model
   - tra response business object V6
 - Output:
@@ -156,7 +156,7 @@
 - Evidence:
   - Da cap nhat contract mapping voi policy artifact legacy:
     - giu artifact California cho muc dich tham chieu/rollback.
-    - runtime V6 chi su dung `vietname.pkl` + fallback `lr_pipeline.joblib`.
+    - runtime V6 chi su dung `vietnam.pkl` + fallback `lr_pipeline.joblib`.
   - Da cap nhat `REVIEW.md` de ghi ro quyet dinh va rui ro.
 
 ### [x] T016 - Chuan hoa FE error mapping cho serializer error shape (DONE)

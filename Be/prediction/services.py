@@ -47,13 +47,13 @@ class PredictionService:
         """Lazy-load machine learning model."""
         if cls._model_pipeline is None:
             model_dir = cls._get_model_dir()
-            model_path = os.path.join(model_dir, "vietname.pkl")
+            model_path = os.path.join(model_dir, "vietnam.pkl")
             fallback_path = os.path.join(model_dir, "lr_pipeline.joblib")
             if not os.path.exists(model_path) and os.path.exists(fallback_path):
                 model_path = fallback_path
             if not os.path.exists(model_path):
                 raise FileNotFoundError(
-                    "Machine learning model file not found. Expected 'vietname.pkl'."
+                    "Machine learning model file not found. Expected 'vietnam.pkl'."
                 )
             cls._model_pipeline = joblib.load(model_path)
         return cls._model_pipeline
@@ -70,7 +70,7 @@ class PredictionService:
             cls._model_features = [str(feature) for feature in feature_names]
             return cls._model_features
 
-        metadata_path = os.path.join(cls._get_model_dir(), "vietname_metadata.json")
+        metadata_path = os.path.join(cls._get_model_dir(), "vietnam_metadata.json")
         if os.path.exists(metadata_path):
             with open(metadata_path, "r", encoding="utf-8") as metadata_file:
                 metadata = json.load(metadata_file)
