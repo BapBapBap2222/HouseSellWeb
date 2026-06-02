@@ -161,7 +161,7 @@ export const HeroCarousel = memo(({ isAppLoaded = true, onLoadComplete }: { isAp
                      <Button 
                         className="bg-transparent hover:bg-white/20 text-white border border-white/40 rounded-full w-12 h-12 p-0 backdrop-blur-md transition-all"
                         aria-label="Open saved listings"
-                        onClick={() => navigate('/listings')}
+                        onClick={() => navigate('/profile?tab=favorites')}
                     >
                         <Bookmark className="w-5 h-5" />
                     </Button>

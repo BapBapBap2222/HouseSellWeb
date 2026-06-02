@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Award, BriefcaseBusiness, Clock3, Loader2, Mail, MapPin, Phone, ShieldCheck, Star } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -7,7 +7,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAgentInitials } from "@/lib/agentProfile";
-import { AgentDetail as AgentDetailType, deleteAgent, getAgent, revokeAgentVerification } from "@/lib/agentsApi";
+import {
+  AgentDetail as AgentDetailType,
+  AgentReview,
+  createAgentReview,
+  deleteAgent,
+  getAgent,
+  getAgentReviews,
+  revokeAgentVerification,
+} from "@/lib/agentsApi";
 
 const statCards = (agent: AgentDetailType) => [
   {
@@ -39,12 +47,18 @@ const statCards = (agent: AgentDetailType) => [
 const AgentDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const [agent, setAgent] = useState<AgentDetailType | null>(null);
+  const [reviews, setReviews] = useState<AgentReview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingReviews, setLoadingReviews] = useState(false);
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [adminLoading, setAdminLoading] = useState<"revoke" | "delete" | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState("");
 
   useEffect(() => {
     if (!slug) return;
@@ -57,9 +71,13 @@ const AgentDetail = () => {
       setActionError("");
 
       try {
-        const data = await getAgent(slug);
+        const [data, reviewData] = await Promise.all([
+          getAgent(slug),
+          getAgentReviews(slug),
+        ]);
         if (!cancelled) {
           setAgent(data);
+          setReviews(reviewData);
         }
       } catch (fetchError) {
         console.error("Failed to load agent detail:", fetchError);
@@ -80,6 +98,32 @@ const AgentDetail = () => {
       cancelled = true;
     };
   }, [slug]);
+
+  useEffect(() => {
+    if (!slug || loading) return;
+
+    let cancelled = false;
+    const loadReviews = async () => {
+      setLoadingReviews(true);
+      try {
+        const data = await getAgentReviews(slug);
+        if (!cancelled) {
+          setReviews(data);
+        }
+      } catch (fetchError) {
+        console.error("Failed to load agent reviews:", fetchError);
+      } finally {
+        if (!cancelled) {
+          setLoadingReviews(false);
+        }
+      }
+    };
+
+    loadReviews();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, loading]);
 
   const handleRevokeVerification = async () => {
     if (!agent || !window.confirm(`Remove verification for ${agent.full_name}?`)) return;
@@ -111,6 +155,41 @@ const AgentDetail = () => {
       setAdminLoading(null);
     }
   };
+
+  const handleReviewSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!slug) return;
+
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
+    setSubmittingReview(true);
+    setReviewError("");
+
+    try {
+      await createAgentReview(slug, {
+        rating: reviewRating,
+        comment: reviewComment,
+      });
+      const [updatedAgent, updatedReviews] = await Promise.all([
+        getAgent(slug),
+        getAgentReviews(slug),
+      ]);
+      setAgent(updatedAgent);
+      setReviews(updatedReviews);
+      setReviewComment("");
+    } catch (submitError) {
+      console.error("Failed to submit agent review:", submitError);
+      const detail = (submitError as { response?: { data?: { detail?: string; rating?: string[] } } }).response?.data;
+      setReviewError(detail?.detail || detail?.rating?.[0] || "Could not submit this rating.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const canReview = Boolean(agent && user?.agent_slug !== agent.slug);
 
   return (
     <div className="min-h-screen bg-[#F8FAFB] font-sans">
@@ -276,12 +355,18 @@ const AgentDetail = () => {
                       {agent.latest_activities.length > 0 ? (
                         <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                           {agent.latest_activities.map((activity) => (
-                            <div key={activity.id} className="rounded-3xl border border-slate-200 p-4 bg-slate-50/50">
+                            <Link
+                              key={activity.id}
+                              to={`/property/${activity.id}`}
+                              className="block rounded-3xl border border-slate-200 p-4 bg-slate-50/50 transition-all hover:border-sky-200 hover:bg-white hover:shadow-sm"
+                            >
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                                 <span className="text-xs font-bold text-emerald-600">{activity.listing_type}</span>
                               </div>
-                              <h3 className="text-base font-semibold text-slate-900">{activity.title}</h3>
+                              <h3 className="text-base font-semibold text-slate-900 hover:text-sky-700 transition-colors">
+                                {activity.title}
+                              </h3>
                               <div className="mt-3 flex items-start gap-2 text-sm text-slate-500">
                                 <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
                                 <span>{activity.address}</span>
@@ -290,7 +375,7 @@ const AgentDetail = () => {
                                 <Clock3 className="w-3.5 h-3.5" />
                                 {new Date(activity.created_at).toLocaleString()}
                               </div>
-                            </div>
+                            </Link>
                           ))}
                         </div>
                       ) : (
@@ -298,6 +383,84 @@ const AgentDetail = () => {
                       )}
                     </div>
                   )}
+
+                  <div className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                      <div>
+                        <h2 className="text-2xl font-semibold text-slate-900">Ratings & Comments</h2>
+                        <p className="mt-2 text-sm text-slate-500">
+                          Visitor feedback for this seller profile.
+                        </p>
+                      </div>
+                      <div className="text-sm font-semibold text-amber-600">
+                        {agent.rating} / 5 · {agent.total_reviews} reviews
+                      </div>
+                    </div>
+
+                    {canReview ? (
+                      <form onSubmit={handleReviewSubmit} className="mt-6 rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+                          <div className="md:w-40">
+                            <label className="mb-2 block text-sm font-semibold text-slate-700">Rating</label>
+                            <select
+                              value={reviewRating}
+                              onChange={(event) => setReviewRating(Number(event.target.value))}
+                              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-sky-500"
+                            >
+                              {[5, 4, 3, 2, 1].map((value) => (
+                                <option key={value} value={value}>{value} stars</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex-1">
+                            <label className="mb-2 block text-sm font-semibold text-slate-700">Comment</label>
+                            <input
+                              value={reviewComment}
+                              onChange={(event) => setReviewComment(event.target.value)}
+                              placeholder="Share your experience with this seller"
+                              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-sky-500"
+                            />
+                          </div>
+                          <Button type="submit" disabled={submittingReview} className="rounded-full bg-sky-700 hover:bg-sky-800">
+                            {submittingReview ? "Submitting..." : "Submit Rating"}
+                          </Button>
+                        </div>
+                        {reviewError && <p className="mt-3 text-sm font-medium text-rose-600">{reviewError}</p>}
+                      </form>
+                    ) : (
+                      <div className="mt-6 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                        {isLoggedIn ? "You cannot rate your own profile." : "Sign in to leave a rating and comment."}
+                      </div>
+                    )}
+
+                    <div className="mt-6 space-y-4">
+                      {loadingReviews ? (
+                        <div className="text-sm text-slate-500">Loading ratings...</div>
+                      ) : reviews.length === 0 ? (
+                        <div className="rounded-3xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+                          No ratings yet.
+                        </div>
+                      ) : (
+                        reviews.map((review) => (
+                          <div key={review.id} className="rounded-3xl border border-slate-200 bg-white p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <div className="font-semibold text-slate-900">{review.reviewer_name}</div>
+                                <div className="text-xs text-slate-400">@{review.reviewer_username}</div>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="font-bold text-amber-600">{review.rating} / 5</span>
+                                <span className="text-slate-400">{new Date(review.created_at).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                            {review.comment && (
+                              <p className="mt-3 text-sm leading-6 text-slate-600">{review.comment}</p>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="lg:col-span-2 space-y-8">

@@ -1,11 +1,12 @@
 from django.db.models import Q
 from rest_framework import filters, generics, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import NotFound, PermissionDenied
 
-from .models import Agent
-from .serializers import AgentDetailSerializer, AgentListSerializer
+from .models import Agent, AgentReview
+from .serializers import AgentDetailSerializer, AgentListSerializer, AgentReviewSerializer
 
 
 class AgentListView(generics.ListAPIView):
@@ -14,7 +15,10 @@ class AgentListView(generics.ListAPIView):
     search_fields = ["full_name", "specialization", "city", "tagline", "bio"]
 
     def get_queryset(self):
-        return Agent.objects.exclude(Q(user__is_staff=True) | Q(user__is_superuser=True))
+        return (
+            Agent.objects.exclude(Q(user__is_staff=True) | Q(user__is_superuser=True))
+            .filter(Q(user__isnull=True) | Q(user__profile__profile_visible=True))
+        )
 
 
 class AgentDetailView(generics.RetrieveAPIView):
@@ -22,7 +26,57 @@ class AgentDetailView(generics.RetrieveAPIView):
     lookup_field = "slug"
 
     def get_queryset(self):
-        return Agent.objects.exclude(Q(user__is_staff=True) | Q(user__is_superuser=True))
+        return (
+            Agent.objects.exclude(Q(user__is_staff=True) | Q(user__is_superuser=True))
+            .filter(Q(user__isnull=True) | Q(user__profile__profile_visible=True))
+        )
+
+
+class AgentReviewListCreateView(generics.ListCreateAPIView):
+    serializer_class = AgentReviewSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_agent(self):
+        try:
+            return (
+                Agent.objects.exclude(Q(user__is_staff=True) | Q(user__is_superuser=True))
+                .filter(Q(user__isnull=True) | Q(user__profile__profile_visible=True))
+                .get(slug=self.kwargs["slug"])
+            )
+        except Agent.DoesNotExist as exc:
+            raise NotFound("Agent not found.") from exc
+
+    def get_queryset(self):
+        return AgentReview.objects.filter(agent=self.get_agent()).select_related("reviewer")
+
+    def create(self, request, *args, **kwargs):
+        agent = self.get_agent()
+        if agent.user_id == request.user.id:
+            raise PermissionDenied("You cannot rate your own profile.")
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        review, created = AgentReview.objects.update_or_create(
+            agent=agent,
+            reviewer=request.user,
+            defaults={
+                "rating": serializer.validated_data["rating"],
+                "comment": serializer.validated_data.get("comment", ""),
+            },
+        )
+        output = self.get_serializer(review)
+        return Response(output.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+class MyAgentReviewsView(generics.ListAPIView):
+    serializer_class = AgentReviewSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        agent = getattr(self.request.user, "agent_profile", None)
+        if not agent:
+            return AgentReview.objects.none()
+        return AgentReview.objects.filter(agent=agent).select_related("reviewer")
 
 
 class AgentAdminBaseView(APIView):

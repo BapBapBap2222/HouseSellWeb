@@ -78,6 +78,7 @@ export type ListResponse<T> = PaginatedResponse<T> | T[];
 export interface PropertyFilters {
   search?: string;
   property_type?: string;
+  property_types?: string;
   listing_type?: string;
   city?: string;
   district?: string;
@@ -133,6 +134,7 @@ export interface FavoriteItem {
   id: number;
   property_id: number;
   property_title: string;
+  property: Property;
   created_at: string;
 }
 
@@ -161,9 +163,13 @@ const normalizePropertyFilters = (filters?: PropertyFilters): PropertyFilters | 
   return params;
 };
 
-export const getProperties = async (filters?: PropertyFilters): Promise<ListResponse<Property>> => {
+export const getProperties = async (
+  filters?: PropertyFilters,
+  signal?: AbortSignal,
+): Promise<ListResponse<Property>> => {
   const { data } = await api.get<ListResponse<Property>>('/api/properties/', {
     params: normalizePropertyFilters(filters),
+    signal,
   });
   return data;
 };
@@ -177,9 +183,13 @@ export const getProperty = async (id: number): Promise<Property> => {
   return data;
 };
 
-export const getMyProperties = async (filters?: PropertyFilters): Promise<ListResponse<Property>> => {
+export const getMyProperties = async (
+  filters?: PropertyFilters,
+  signal?: AbortSignal,
+): Promise<ListResponse<Property>> => {
   const { data } = await api.get<ListResponse<Property>>('/api/properties/my/', {
     params: normalizePropertyFilters(filters),
+    signal,
   });
   return data;
 };

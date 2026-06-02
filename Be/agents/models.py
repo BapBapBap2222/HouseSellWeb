@@ -1,4 +1,7 @@
+from decimal import Decimal, ROUND_HALF_UP
+
 from django.db import models
+from django.db.models import Avg, Count
 from django.contrib.auth.models import User
 
 
@@ -36,3 +39,36 @@ class Agent(models.Model):
 
     def __str__(self):
         return self.full_name
+
+    def refresh_review_stats(self):
+        stats = self.reviews.aggregate(average=Avg("rating"), count=Count("id"))
+        average = stats["average"] or 0
+        self.rating = Decimal(str(average)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        self.total_reviews = stats["count"] or 0
+        self.save(update_fields=["rating", "total_reviews", "updated_at"])
+
+
+class AgentReview(models.Model):
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name="reviews")
+    reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="agent_reviews")
+    rating = models.PositiveSmallIntegerField()
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = ["agent", "reviewer"]
+
+    def __str__(self):
+        return f"{self.reviewer.username} rated {self.agent.full_name}: {self.rating}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.agent.refresh_review_stats()
+
+    def delete(self, *args, **kwargs):
+        agent = self.agent
+        result = super().delete(*args, **kwargs)
+        agent.refresh_review_stats()
+        return result

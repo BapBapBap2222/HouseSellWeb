@@ -3,7 +3,7 @@ from rest_framework import serializers
 from properties.models import Property
 from utils.supabase_storage import build_media_url
 
-from .models import Agent
+from .models import Agent, AgentReview
 
 
 LISTING_TYPE_LABELS = {
@@ -140,3 +140,35 @@ class AgentDetailSerializer(serializers.ModelSerializer):
                 }
             )
         return activities
+
+
+class AgentReviewSerializer(serializers.ModelSerializer):
+    reviewer_name = serializers.SerializerMethodField()
+    reviewer_username = serializers.CharField(source="reviewer.username", read_only=True)
+
+    class Meta:
+        model = AgentReview
+        fields = [
+            "id",
+            "agent",
+            "reviewer",
+            "reviewer_name",
+            "reviewer_username",
+            "rating",
+            "comment",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["agent", "reviewer", "reviewer_name", "reviewer_username", "created_at", "updated_at"]
+
+    def get_reviewer_name(self, review: AgentReview):
+        full_name = review.reviewer.get_full_name().strip()
+        return full_name or review.reviewer.username
+
+    def validate_rating(self, value):
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("Rating must be between 1 and 5.")
+        return value
+
+    def validate_comment(self, value):
+        return (value or "").strip()

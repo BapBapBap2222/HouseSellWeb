@@ -9,6 +9,7 @@ class UserProfile(models.Model):
     address = models.TextField(blank=True, null=True)
     short_intro = models.CharField(max_length=280, blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
+    profile_visible = models.BooleanField(default=True)
     activity_visible = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

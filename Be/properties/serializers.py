@@ -45,6 +45,7 @@ class PropertyListSerializer(serializers.ModelSerializer):
     listing_type_display = serializers.SerializerMethodField()
     property_type_display = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
+    is_favorited = serializers.SerializerMethodField()
 
     class Meta:
         model = Property
@@ -71,6 +72,8 @@ class PropertyListSerializer(serializers.ModelSerializer):
             "primary_image",
             "views_count",
             "is_featured",
+            "is_favorited",
+            "is_active",
             "created_at",
         ]
 
@@ -95,6 +98,16 @@ class PropertyListSerializer(serializers.ModelSerializer):
 
     def get_status_display(self, obj):
         return STATUS_LABELS.get(obj.status, obj.status)
+
+    def get_is_favorited(self, obj):
+        annotated_value = getattr(obj, "is_favorited_value", None)
+        if annotated_value is not None:
+            return bool(annotated_value)
+
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            return Favorite.objects.filter(user=request.user, property=obj).exists()
+        return False
 
 
 class PropertyDetailSerializer(serializers.ModelSerializer):
@@ -169,7 +182,8 @@ class PropertyImageUploadSerializer(serializers.ModelSerializer):
 class FavoriteSerializer(serializers.ModelSerializer):
     property_title = serializers.CharField(source="property.title", read_only=True)
     property_id = serializers.IntegerField(source="property.id", read_only=True)
+    property = PropertyListSerializer(read_only=True)
 
     class Meta:
         model = Favorite
-        fields = ["id", "property_id", "property_title", "created_at"]
+        fields = ["id", "property_id", "property_title", "property", "created_at"]

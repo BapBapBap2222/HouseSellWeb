@@ -52,6 +52,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "address",
             "short_intro",
             "bio",
+            "profile_visible",
             "activity_visible",
             "created_at",
             "is_staff",

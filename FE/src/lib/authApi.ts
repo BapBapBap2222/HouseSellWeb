@@ -49,6 +49,7 @@ export interface UserProfile {
   address: string | null;
   short_intro: string | null;
   bio: string | null;
+  profile_visible: boolean;
   activity_visible: boolean;
   created_at: string;
   is_staff: boolean;
@@ -78,6 +79,7 @@ export interface UpdateProfilePayload {
   address?: string;
   short_intro?: string;
   bio?: string;
+  profile_visible?: boolean;
   activity_visible?: boolean;
 }
 

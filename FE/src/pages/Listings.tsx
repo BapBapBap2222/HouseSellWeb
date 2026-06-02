@@ -19,7 +19,7 @@ import { VIETNAM_ADMINISTRATIVE_UNITS } from '@/data/vietnamAdministrative';
 import { VIETNAM_PROVINCES } from '@/data/provinces';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { getImageUrl, getProperties, normalizeListResponse, Property, toggleFavorite } from '@/lib/propertiesApi';
+import { getImageUrl, getProperties, normalizeListResponse, Property, PropertyFilters, toggleFavorite } from '@/lib/propertiesApi';
 
 type ViewMode = 'grid' | 'list';
 type SortBy = 'newest' | 'price-asc' | 'price-desc';
@@ -196,6 +196,7 @@ const Listings = () => {
   }, []);
 
   const [allListings, setAllListings] = useState<ListingViewModel[]>([]);
+  const [totalResults, setTotalResults] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedListing, setSelectedListing] = useState<ListingViewModel | null>(null);
@@ -225,34 +226,78 @@ const Listings = () => {
       bedrooms: parseBedroomsParam(searchParams.get('bedrooms')),
     };
   });
+  const [serverFilters, setServerFilters] = useState<ListingFiltersState>(filters);
 
   useEffect(() => {
-    let mounted = true;
+    const timeout = window.setTimeout(() => {
+      setServerFilters(filters);
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [filters]);
+
+  const activeServerFilters = serverFilters;
+
+  const propertyQueryFilters = useMemo(() => {
+    const activeFilters = activeServerFilters;
+    const [minPriceBillion, maxPriceBillion] = activeFilters.priceRange;
+    const listingTypeValue = activeFilters.listingType === 'buy' ? 'sale' : 'rent';
+    const ordering = sortBy === 'price-asc' ? 'price' : sortBy === 'price-desc' ? '-price' : '-created_at';
+    const query: PropertyFilters = {
+      listing_type: listingTypeValue,
+      price_min: Math.round(minPriceBillion * 1_000_000_000),
+      price_max: Math.round(maxPriceBillion * 1_000_000_000),
+      ordering,
+      page: currentPage,
+      page_size: ITEMS_PER_PAGE,
+    };
+
+    if (requestedSearch) query.search = requestedSearch;
+    if (activeFilters.city) query.city = activeFilters.city;
+    if (activeFilters.district) query.district = activeFilters.district;
+    if (activeFilters.propertyTypes.length === 1) {
+      query.property_type = activeFilters.propertyTypes[0];
+    } else if (activeFilters.propertyTypes.length > 1) {
+      query.property_types = activeFilters.propertyTypes.join(',');
+    }
+    if (activeFilters.bedrooms !== null) {
+      if (activeFilters.bedrooms >= 5) {
+        query.bedrooms_min = activeFilters.bedrooms;
+      } else {
+        query.bedrooms = activeFilters.bedrooms;
+      }
+    }
+
+    return query;
+  }, [activeServerFilters, currentPage, requestedSearch, sortBy]);
+
+  useEffect(() => {
+    const controller = new AbortController();
     const fetchListings = async () => {
       setLoading(true);
       setError('');
       try {
-        const response = await getProperties();
+        const response = await getProperties(propertyQueryFilters, controller.signal);
         const items = normalizeListResponse(response);
         const mapped = items.map(mapPropertyToListing);
-        if (mounted) {
-          setAllListings(mapped);
-        }
+        setAllListings(mapped);
+        setTotalResults(Array.isArray(response) ? mapped.length : response.count);
       } catch (_err) {
-        if (mounted) {
-          const err = _err as {
-            response?: { status?: number };
-            code?: string;
-          };
-          const statusCode = err.response?.status;
-          const nextMessage = statusCode
-            ? `Khong tai duoc danh sach bat dong san tu he thong (HTTP ${statusCode}).`
-            : 'Khong tai duoc danh sach bat dong san tu he thong. Kiem tra backend, API URL hoac CORS.';
-          setError(nextMessage);
-          setAllListings([]);
+        const err = _err as {
+          response?: { status?: number };
+          code?: string;
+        };
+        if (err.code === 'ERR_CANCELED' || controller.signal.aborted) {
+          return;
         }
+        const statusCode = err.response?.status;
+        const nextMessage = statusCode
+          ? `Khong tai duoc danh sach bat dong san tu he thong (HTTP ${statusCode}).`
+          : 'Khong tai duoc danh sach bat dong san tu he thong. Kiem tra backend, API URL hoac CORS.';
+        setError(nextMessage);
+        setAllListings([]);
+        setTotalResults(0);
       } finally {
-        if (mounted) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       }
@@ -260,9 +305,9 @@ const Listings = () => {
 
     fetchListings();
     return () => {
-      mounted = false;
+      controller.abort();
     };
-  }, []);
+  }, [propertyQueryFilters]);
 
   useEffect(() => {
     const next = getLocationLabelFromSlug(
@@ -335,59 +380,8 @@ const Listings = () => {
     ]);
   }, [allListings, filters.city]);
 
-  const filteredListings = useMemo(() => {
-    const [minPriceBillion, maxPriceBillion] = filters.priceRange;
-    const listingTypeValue = filters.listingType === 'buy' ? 'sale' : 'rent';
-    const normalizedCity = normalizeLocationValue(filters.city);
-    const normalizedDistrict = normalizeLocationValue(filters.district);
-    const normalizedSearch = normalizeLocationValue(requestedSearch);
-
-    return allListings.filter((item) => {
-      const priceBillion = item.rawPrice / 1_000_000_000;
-      if (item.listingType !== listingTypeValue) return false;
-      if (priceBillion < minPriceBillion || priceBillion > maxPriceBillion) return false;
-      if (filters.city && normalizeLocationValue(item.city) !== normalizedCity) return false;
-      if (filters.district && normalizeLocationValue(item.district) !== normalizedDistrict) return false;
-      if (filters.propertyTypes.length > 0 && !filters.propertyTypes.includes(item.propertyType)) return false;
-      if (filters.bedrooms !== null) {
-        if (filters.bedrooms >= 5) {
-          if (item.beds < 5) return false;
-        } else if (item.beds !== filters.bedrooms) {
-          return false;
-        }
-      }
-      if (normalizedSearch) {
-        const haystack = normalizeLocationValue([
-          item.title,
-          item.address,
-          item.city,
-          item.district,
-          item.type,
-        ].filter(Boolean).join(' '));
-        if (!haystack.includes(normalizedSearch)) return false;
-      }
-      return true;
-    });
-  }, [allListings, filters, requestedSearch]);
-
-  const sortedListings = useMemo(() => {
-    const cloned = [...filteredListings];
-    if (sortBy === 'price-asc') {
-      cloned.sort((a, b) => a.rawPrice - b.rawPrice);
-      return cloned;
-    }
-    if (sortBy === 'price-desc') {
-      cloned.sort((a, b) => b.rawPrice - a.rawPrice);
-      return cloned;
-    }
-    return cloned;
-  }, [filteredListings, sortBy]);
-
-  const totalResults = sortedListings.length;
   const totalPages = Math.max(1, Math.ceil(totalResults / ITEMS_PER_PAGE));
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedListings = sortedListings.slice(startIndex, endIndex);
+  const paginatedListings = allListings;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -401,11 +395,11 @@ const Listings = () => {
 
   useEffect(() => {
     if (!selectedListing) return;
-    const exists = sortedListings.some((item) => item.id === selectedListing.id);
+    const exists = allListings.some((item) => item.id === selectedListing.id);
     if (!exists) {
       setSelectedListing(null);
     }
-  }, [selectedListing, sortedListings]);
+  }, [allListings, selectedListing]);
 
   const handleToggleFavorite = async (
     propertyId: number,

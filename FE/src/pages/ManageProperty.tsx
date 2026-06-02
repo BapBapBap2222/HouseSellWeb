@@ -1,6 +1,6 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Calendar, Clock, ImagePlus, Info, RotateCcw, Save } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, ImagePlus, Info, PauseCircle, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { addDays, format } from 'date-fns';
 
 import PropertyEditorFields from '@/components/properties/PropertyEditorFields';
@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import {
   Property,
   PropertyAvailabilityDay,
+  deleteProperty,
   deletePropertyImage,
   getImageUrl,
   getProperty,
@@ -106,6 +107,8 @@ const ManageProperty = () => {
   const [ownerAppointments, setOwnerAppointments] = useState<Appointment[]>([]);
   const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [processingAppointmentId, setProcessingAppointmentId] = useState<number | null>(null);
+  const [updatingListingStatus, setUpdatingListingStatus] = useState(false);
+  const [deletingListing, setDeletingListing] = useState(false);
 
   const next7Days = useMemo(
     () => Array.from({ length: 7 }).map((_, index) => addDays(new Date(), index)),
@@ -316,6 +319,53 @@ const ManageProperty = () => {
     }
   };
 
+  const handleListingStatusChange = async (
+    nextStatus: Property['status'],
+    nextIsActive: boolean,
+  ) => {
+    if (!property) return;
+
+    try {
+      setUpdatingListingStatus(true);
+      const updated = await updateProperty(property.id, {
+        status: nextStatus,
+        is_active: nextIsActive,
+      });
+      setProperty(updated);
+      setForm(mapPropertyToForm(updated));
+      toast({ title: 'Listing status updated' });
+    } catch (error) {
+      toast({
+        title: 'Cannot update listing status',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingListingStatus(false);
+    }
+  };
+
+  const handleDeleteListing = async () => {
+    if (!property || deletingListing) return;
+    const confirmed = window.confirm('Delete this listing permanently? This action cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+      setDeletingListing(true);
+      await deleteProperty(property.id);
+      toast({ title: 'Listing deleted' });
+      navigate('/profile?tab=sell');
+    } catch (error) {
+      toast({
+        title: 'Cannot delete listing',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingListing(false);
+    }
+  };
+
   const toggleAvailabilityTimeSlot = (time: string) => {
     setAvailabilitySchedule((current) =>
       current.map((day) => {
@@ -403,6 +453,21 @@ const ManageProperty = () => {
               <p className="mt-2 max-w-3xl text-slate-500">
                 Update the sell listing information, details and image gallery from one place.
               </p>
+              {property && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {property.status_display || property.status}
+                  </span>
+                  <span className={cn(
+                    'rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide',
+                    property.is_active
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border-slate-200 bg-slate-50 text-slate-500',
+                  )}>
+                    {property.is_active ? 'Public' : 'Hidden'}
+                  </span>
+                </div>
+              )}
             </div>
             <Button variant="outline" onClick={() => navigate('/profile?tab=sell')}>
               Back to Sell tab
@@ -490,6 +555,61 @@ const ManageProperty = () => {
             </form>
 
             <aside className="space-y-6 self-start xl:sticky xl:top-28">
+              {property && (
+                <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="mb-4">
+                    <h2 className="text-lg font-semibold text-slate-900">Listing Status</h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Change whether this listing is public, paused, sold, or rented.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <Button
+                      type="button"
+                      className="justify-start bg-emerald-600 hover:bg-emerald-700"
+                      disabled={updatingListingStatus || deletingListing || (property.status === 'active' && property.is_active)}
+                      onClick={() => void handleListingStatusChange('active', true)}
+                    >
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Activate Listing
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="justify-start border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                      disabled={updatingListingStatus || deletingListing || (property.status === 'inactive' && !property.is_active)}
+                      onClick={() => void handleListingStatusChange('inactive', false)}
+                    >
+                      <PauseCircle className="mr-2 h-4 w-4" />
+                      Pause Listing
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="justify-start border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-800"
+                      disabled={updatingListingStatus || deletingListing || property.status === (property.listing_type === 'rent' ? 'rented' : 'sold')}
+                      onClick={() =>
+                        void handleListingStatusChange(property.listing_type === 'rent' ? 'rented' : 'sold', false)
+                      }
+                    >
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      {property.listing_type === 'rent' ? 'Mark as Rented' : 'Mark as Sold'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="justify-start"
+                      disabled={updatingListingStatus || deletingListing}
+                      onClick={() => void handleDeleteListing()}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {deletingListing ? 'Deleting...' : 'Delete Listing'}
+                    </Button>
+                  </div>
+                </section>
+              )}
+
               <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold text-slate-900">Viewing Availability</h2>

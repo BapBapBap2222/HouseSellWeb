@@ -8,6 +8,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getImageUrl, getProperties, normalizeListResponse, Property, toggleFavorite } from '@/lib/propertiesApi';
 
 const filterChips = ['All', 'Apartment', 'Townhouse', 'Land', 'Office'];
+const FEATURED_CACHE_TTL_MS = 60_000;
+
+let featuredListingsCache: {
+  key: string;
+  items: FeaturedListingItem[];
+  cachedAt: number;
+} | null = null;
 
 interface FeaturedListingItem {
   id: number;
@@ -61,43 +68,49 @@ const toFeaturedItem = (property: Property): FeaturedListingItem => {
 
 export const FeaturedListings = () => {
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
+  const cacheKey = user?.username ?? 'guest';
   const [activeFilter, setActiveFilter] = useState('All');
-  const [listings, setListings] = useState<FeaturedListingItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [listings, setListings] = useState<FeaturedListingItem[]>(() => {
+    if (!featuredListingsCache) return [];
+    const isFresh = featuredListingsCache.key === cacheKey && Date.now() - featuredListingsCache.cachedAt < FEATURED_CACHE_TTL_MS;
+    return isFresh ? featuredListingsCache.items : [];
+  });
+  const [loading, setLoading] = useState(() => listings.length === 0);
 
   useEffect(() => {
-    let mounted = true;
+    const cached = featuredListingsCache;
+    if (cached && cached.key === cacheKey && Date.now() - cached.cachedAt < FEATURED_CACHE_TTL_MS) {
+      setListings(cached.items);
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
 
     const fetchFeaturedListings = async () => {
       setLoading(true);
       try {
-        const featuredResponse = await getProperties({
-          ordering: '-created_at',
-          is_featured: true,
-          page_size: 12,
-        });
-        const featuredItems = normalizeListResponse(featuredResponse);
-
-        let source = featuredItems.map(toFeaturedItem);
-        if (source.length === 0) {
-          const fallbackResponse = await getProperties({
-            ordering: '-created_at',
+        const response = await getProperties(
+          {
+            ordering: '-is_featured,-created_at',
+            page: 1,
             page_size: 12,
-          });
-          const fallbackItems = normalizeListResponse(fallbackResponse);
-          source = fallbackItems.map(toFeaturedItem);
-        }
+          },
+          controller.signal,
+        );
+        const source = normalizeListResponse(response).map(toFeaturedItem).slice(0, 12);
 
-        if (mounted) {
-          setListings(source.slice(0, 12));
-        }
+        featuredListingsCache = { key: cacheKey, items: source, cachedAt: Date.now() };
+        setListings(source);
       } catch (_error) {
-        if (mounted) {
-          setListings([]);
+        const error = _error as { code?: string };
+        if (error.code === 'ERR_CANCELED' || controller.signal.aborted) {
+          return;
         }
+        setListings([]);
       } finally {
-        if (mounted) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       }
@@ -105,9 +118,9 @@ export const FeaturedListings = () => {
 
     fetchFeaturedListings();
     return () => {
-      mounted = false;
+      controller.abort();
     };
-  }, []);
+  }, [cacheKey]);
 
   const filteredListings = useMemo(() => {
     const propertyType = chipToPropertyType[activeFilter];
@@ -133,9 +146,15 @@ export const FeaturedListings = () => {
 
     try {
       const result = await toggleFavorite(propertyId);
-      setListings((current) =>
-        current.map((item) => item.id === propertyId ? { ...item, isFavorited: result.is_favorited } : item),
-      );
+      const syncFavoriteState = (current: FeaturedListingItem[]) =>
+        current.map((item) => item.id === propertyId ? { ...item, isFavorited: result.is_favorited } : item);
+      setListings(syncFavoriteState);
+      if (featuredListingsCache) {
+        featuredListingsCache = {
+          ...featuredListingsCache,
+          items: syncFavoriteState(featuredListingsCache.items),
+        };
+      }
     } catch {
       setListings((current) =>
         current.map((item) => item.id === propertyId ? { ...item, isFavorited: previous } : item),

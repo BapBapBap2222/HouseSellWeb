@@ -58,7 +58,7 @@ export const Footer = () => {
               <span className="text-3xl font-bold text-white tracking-widest">BLUE - SKY</span>
             </div>
             
-            <p className="text-muted-foreground mb-6 max-w-sm">
+            <p className="text-white/70 mb-6 max-w-sm">
               Connecting you with the best real estate values. Trusted - Transparent - Effective.
             </p>
 
@@ -98,11 +98,11 @@ export const Footer = () => {
           {/* Links Columns */}
           {Object.entries(footerLinks).map(([key, column]) => (
             <div key={key}>
-                <h3 className="font-semibold text-foreground mb-4">{column.title}</h3>
+                <h3 className="font-semibold text-white mb-4">{column.title}</h3>
                 <ul className="space-y-3">
                   {column.links.map((link) => (
                     <li key={link.label}>
-                      <Link to={link.href} className="text-muted-foreground hover:text-primary transition-colors">
+                      <Link to={link.href} className="text-white/70 hover:text-white transition-colors">
                         {link.label}
                       </Link>
                     </li>
@@ -153,12 +153,12 @@ export const Footer = () => {
       {/* Bottom Bar */}
       <div className="border-t border-white/10">
         <div className="max-w-content mx-auto px-4 md:px-8 py-5">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-white/60">
             <p>© 2024 Blue Sky. All rights reserved.</p>
             <ul className="flex items-center gap-8">
                 <li><Link to="/privacy" className="text-slate-400 hover:text-white transition-colors">Privacy Policy</Link></li>
                 <li><Link to="/terms" className="text-slate-400 hover:text-white transition-colors">Terms of Service</Link></li>
-                <li><Link to="/privacy#cookies" className="hover:text-primary transition-colors">Cookie Policy</Link></li>
+                <li><Link to="/privacy#cookies" className="text-slate-400 hover:text-white transition-colors">Cookie Policy</Link></li>
             </ul>
           </div>
         </div>

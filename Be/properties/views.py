@@ -31,11 +31,11 @@ class PropertyListCreateView(generics.ListCreateAPIView):
     filterset_class = PropertyFilter
     pagination_class = OptionalPageNumberPagination
     search_fields = ["title", "description", "city", "district", "address"]
-    ordering_fields = ["price", "area", "created_at", "views_count"]
+    ordering_fields = ["price", "area", "created_at", "views_count", "is_featured"]
     ordering = ["-created_at"]
 
     def get_queryset(self):
-        return PropertyRepository.get_available()
+        return PropertyRepository.get_available(self.request.user)
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -65,7 +65,7 @@ class PropertyDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 
     def get_queryset(self):
-        return PropertyRepository.get_available()
+        return PropertyRepository.get_accessible_for_user(self.request.user)
 
     def get_serializer_class(self):
         if self.request.method in ["PUT", "PATCH"]:

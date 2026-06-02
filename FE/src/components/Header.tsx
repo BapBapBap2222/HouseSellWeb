@@ -23,7 +23,7 @@ const baseNavLinks = [
   { label: "News", href: "/news" },
   { label: "Prediction", href: "/prediction" },
   { label: "Buy", href: "/listings?type=buy" },
-  { label: "Sell", href: "/add-property" },
+  { label: "Sell", href: "/listings?type=buy" },
   { label: "Rent", href: "/listings?type=rent" },
 ];
 
@@ -34,23 +34,17 @@ export const Header = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  const sellHref = !isLoggedIn ? "/login" : user?.agent_is_verified ? "/add-property" : "/profile";
-
   const navLinks = useMemo(() => {
-    const links = baseNavLinks.map((link) =>
-      link.label === "Sell" ? { ...link, href: sellHref } : link,
-    );
-
     if (!user?.is_staff) {
-      return links;
+      return baseNavLinks;
     }
 
     return [
-      links[0],
+      baseNavLinks[0],
       { label: "Admin", href: "/admin-dashboard" },
-      ...links.slice(1),
+      ...baseNavLinks.slice(1),
     ];
-  }, [sellHref, user?.is_staff]);
+  }, [user?.is_staff]);
 
   useEffect(() => {
     const handleScroll = () => {

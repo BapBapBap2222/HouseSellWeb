@@ -1,4 +1,4 @@
-from django.db.models import F, Prefetch
+from django.db.models import BooleanField, Exists, F, OuterRef, Prefetch, Q, Value
 
 from .models import Favorite, Property, PropertyImage
 
@@ -12,12 +12,36 @@ class PropertyRepository:
     )
 
     @staticmethod
-    def get_available():
-        return (
+    def _with_favorite_status(queryset, user):
+        if user and user.is_authenticated:
+            return queryset.annotate(
+                is_favorited_value=Exists(
+                    Favorite.objects.filter(user=user, property_id=OuterRef("pk"))
+                )
+            )
+        return queryset.annotate(is_favorited_value=Value(False, output_field=BooleanField()))
+
+    @staticmethod
+    def get_available(user=None):
+        queryset = (
             Property.objects.filter(is_active=True)
             .select_related("owner", "owner__profile", "owner__agent_profile")
             .prefetch_related(PropertyRepository._image_prefetch)
         )
+        return PropertyRepository._with_favorite_status(queryset, user)
+
+    @staticmethod
+    def get_accessible_for_user(user):
+        queryset = (
+            Property.objects.select_related("owner", "owner__profile", "owner__agent_profile")
+            .prefetch_related(PropertyRepository._image_prefetch)
+        )
+        if user and user.is_authenticated:
+            return PropertyRepository._with_favorite_status(
+                queryset.filter(Q(is_active=True) | Q(owner=user)),
+                user,
+            )
+        return PropertyRepository._with_favorite_status(queryset.filter(is_active=True), user)
 
     @staticmethod
     def get_by_id(pk: int) -> Property:
@@ -25,11 +49,12 @@ class PropertyRepository:
 
     @staticmethod
     def get_by_owner(user):
-        return (
+        queryset = (
             Property.objects.filter(owner=user)
             .select_related("owner", "owner__profile", "owner__agent_profile")
             .prefetch_related(PropertyRepository._image_prefetch)
         )
+        return PropertyRepository._with_favorite_status(queryset, user)
 
     @staticmethod
     def get_owned_by_id(pk: int, user) -> Property:
@@ -54,7 +79,21 @@ class PropertyRepository:
 
     @staticmethod
     def get_favorites(user):
-        return Favorite.objects.filter(user=user).select_related("property", "property__owner")
+        return (
+            Favorite.objects.filter(user=user)
+            .select_related(
+                "property",
+                "property__owner",
+                "property__owner__profile",
+                "property__owner__agent_profile",
+            )
+            .prefetch_related(
+                Prefetch(
+                    "property__images",
+                    queryset=PropertyImage.objects.order_by("order", "id"),
+                )
+            )
+        )
 
     @staticmethod
     def get_or_create_favorite(user, property_obj: Property):

@@ -3,17 +3,13 @@ from rest_framework.pagination import PageNumberPagination
 
 class OptionalPageNumberPagination(PageNumberPagination):
     """
-    Only paginate when the request explicitly asks for it.
+    Paginate property collections by default.
 
-    This keeps old clients working as before, while letting lighter
-    homepage/widget requests limit payload size on Render free instances.
+    Listing pages can become very large after Supabase is populated. Returning
+    one bounded page protects both the API process and the browser from loading
+    every property just to render Buy/Rent views.
     """
 
     page_size = 24
     page_size_query_param = "page_size"
-    max_page_size = 100
-
-    def paginate_queryset(self, queryset, request, view=None):
-        if "page" not in request.query_params and "page_size" not in request.query_params:
-            return None
-        return super().paginate_queryset(queryset, request, view=view)
+    max_page_size = 48

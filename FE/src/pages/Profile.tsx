@@ -17,24 +17,38 @@ import {
   Edit,
   Eye,
   EyeOff,
+  Heart,
   Home,
   Loader2,
   Mail,
   MapPin,
+  PauseCircle,
   Phone,
   Save,
   ShieldAlert,
   ShieldCheck,
   ShieldQuestion,
   ShoppingCart,
+  Star,
   TrendingUp,
+  Trash2,
   Upload,
   X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateProfile } from "@/lib/authApi";
+import { AgentReview, getMyAgentReviews } from "@/lib/agentsApi";
 import { getMyAppointments, getOwnerAppointments, Appointment } from "@/lib/appointmentsApi";
-import { getImageUrl, getMyProperties, normalizeListResponse } from "@/lib/propertiesApi";
+import {
+  FavoriteItem,
+  deleteProperty,
+  getFavorites,
+  getImageUrl,
+  getMyProperties,
+  normalizeListResponse,
+  toggleFavorite,
+  updateProperty,
+} from "@/lib/propertiesApi";
 import { getUserDisplayName, getUserInitials } from "@/lib/userProfile";
 import { createVerificationRequest } from "@/lib/verificationApi";
 import { Line } from "react-chartjs-2";
@@ -73,19 +87,24 @@ type SellItem = {
   address: string;
   city: string;
   status: string;
+  rawStatus: "active" | "inactive" | "sold" | "rented";
+  isActive: boolean;
   daysListed: number;
   newAppointments: number;
   image: string;
   createdAt: string;
+  listingType: "sale" | "rent";
   listingTypeLabel: string;
 };
 
-type TabKey = "profile" | "buy" | "sell";
+type TabKey = "profile" | "buy" | "sell" | "favorites" | "ratings";
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: "profile", label: "Profile", icon: <Home className="w-4 h-4" /> },
   { key: "buy", label: "Buy", icon: <ShoppingCart className="w-4 h-4" /> },
   { key: "sell", label: "Sell", icon: <BadgeDollarSign className="w-4 h-4" /> },
+  { key: "favorites", label: "Favorites", icon: <Heart className="w-4 h-4" /> },
+  { key: "ratings", label: "Ratings", icon: <Star className="w-4 h-4" /> },
 ];
 
 const CHART_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -96,6 +115,9 @@ const statusColor = (status: string) => {
   if (status === "Confirmed") return "bg-emerald-50 text-emerald-700 border-emerald-200";
   if (status === "Pending" || status === "Negotiating") return "bg-amber-50 text-amber-700 border-amber-200";
   if (status === "For Sale") return "bg-blue-50 text-blue-700 border-blue-200";
+  if (status === "Active") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (status === "Sold" || status === "Rented") return "bg-sky-50 text-sky-700 border-sky-200";
+  if (status === "Inactive") return "bg-gray-50 text-gray-500 border-gray-200";
   if (status === "New") return "bg-violet-50 text-violet-700 border-violet-200";
   return "bg-teal-50 text-teal-700 border-teal-200";
 };
@@ -155,10 +177,17 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
   const [buyPage, setBuyPage] = useState(1);
   const [sellPage, setSellPage] = useState(1);
+  const [favoritePage, setFavoritePage] = useState(1);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [sellListings, setSellListings] = useState<SellItem[]>([]);
   const [loadingSellListings, setLoadingSellListings] = useState(false);
+  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [loadingFavorites, setLoadingFavorites] = useState(false);
+  const [removingFavoriteId, setRemovingFavoriteId] = useState<number | null>(null);
+  const [ratings, setRatings] = useState<AgentReview[]>([]);
+  const [loadingRatings, setLoadingRatings] = useState(false);
+  const [processingSellListingId, setProcessingSellListingId] = useState<number | null>(null);
   const [selectedRevenueYear, setSelectedRevenueYear] = useState(new Date().getFullYear());
   const [editingInfo, setEditingInfo] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
@@ -166,6 +195,7 @@ const Profile = () => {
   const [savingInfo, setSavingInfo] = useState(false);
   const [savingBio, setSavingBio] = useState(false);
   const [savingIntro, setSavingIntro] = useState(false);
+  const [profileVisible, setProfileVisible] = useState(user?.profile_visible ?? true);
   const [activityVisible, setActivityVisible] = useState(user?.activity_visible ?? true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState("");
@@ -177,6 +207,7 @@ const Profile = () => {
 
   const buyItemsPerPage = 5;
   const sellItemsPerPage = 9;
+  const favoriteItemsPerPage = 9;
   const displayName = getUserDisplayName(user);
   const displayInitials = getUserInitials(user);
   const verificationStatus = user?.verification_status ?? null;
@@ -218,6 +249,51 @@ const Profile = () => {
   }, [activeTab, user]);
 
   useEffect(() => {
+    const tabFromUrl = searchParams.get("tab") as TabKey | null;
+    if (tabFromUrl && TABS.some((tab) => tab.key === tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!user || activeTab !== "favorites") return;
+
+    const fetchFavorites = async () => {
+      setLoadingFavorites(true);
+      try {
+        const response = await getFavorites();
+        setFavorites(normalizeListResponse(response).filter((item) => Boolean(item.property)));
+      } catch (error) {
+        console.error("Failed to load favorite listings:", error);
+        setFavorites([]);
+      } finally {
+        setLoadingFavorites(false);
+      }
+    };
+
+    fetchFavorites();
+  }, [activeTab, user]);
+
+  useEffect(() => {
+    if (!user || activeTab !== "ratings") return;
+
+    const fetchRatings = async () => {
+      setLoadingRatings(true);
+      try {
+        const response = await getMyAgentReviews();
+        setRatings(response);
+      } catch (error) {
+        console.error("Failed to load profile ratings:", error);
+        setRatings([]);
+      } finally {
+        setLoadingRatings(false);
+      }
+    };
+
+    fetchRatings();
+  }, [activeTab, user]);
+
+  useEffect(() => {
     if (!user) return;
 
     const fetchSellListings = async () => {
@@ -247,10 +323,13 @@ const Profile = () => {
             address: [item.address, item.district, item.city].filter(Boolean).join(", "),
             city: item.city || "",
             status: item.status_display || item.status || "For Sale",
+            rawStatus: item.status,
+            isActive: Boolean(item.is_active),
             daysListed: elapsedDays,
             newAppointments: ownerAppointments.filter((appointment) => appointment.property === item.id).length,
             image: item.primary_image ? getImageUrl(item.primary_image) : FALLBACK_PROPERTY_IMAGE,
             createdAt: item.created_at || createdAt.toISOString(),
+            listingType: item.listing_type,
             listingTypeLabel: item.listing_type_display || "For sale",
           };
         });
@@ -279,6 +358,7 @@ const Profile = () => {
       lastName: user.last_name ?? "",
     });
     setIntroData(user.short_intro ?? "");
+    setProfileVisible(user.profile_visible ?? true);
     setActivityVisible(user.activity_visible ?? true);
   }, [user]);
 
@@ -400,6 +480,80 @@ const Profile = () => {
     }
   };
 
+  const handleToggleProfileVisibility = async () => {
+    const nextValue = !profileVisible;
+    setProfileVisible(nextValue);
+
+    try {
+      await updateProfile({
+        profile_visible: nextValue,
+      });
+      await refreshUser();
+    } catch (error) {
+      console.error("Failed to update profile visibility:", error);
+      setProfileVisible(!nextValue);
+    }
+  };
+
+  const handleRemoveFavorite = async (propertyId: number) => {
+    setRemovingFavoriteId(propertyId);
+    try {
+      const result = await toggleFavorite(propertyId);
+      if (!result.is_favorited) {
+        setFavorites((current) => current.filter((item) => item.property_id !== propertyId));
+      }
+    } catch (error) {
+      console.error("Failed to remove favorite listing:", error);
+    } finally {
+      setRemovingFavoriteId(null);
+    }
+  };
+
+  const handleSellStatusChange = async (
+    propertyId: number,
+    nextStatus: SellItem["rawStatus"],
+    nextIsActive: boolean,
+  ) => {
+    setProcessingSellListingId(propertyId);
+    try {
+      const updated = await updateProperty(propertyId, {
+        status: nextStatus,
+        is_active: nextIsActive,
+      });
+      setSellListings((current) =>
+        current.map((item) =>
+          item.id === propertyId
+            ? {
+                ...item,
+                status: updated.status_display || updated.status,
+                rawStatus: updated.status,
+                isActive: Boolean(updated.is_active),
+              }
+            : item,
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to update listing status:", error);
+    } finally {
+      setProcessingSellListingId(null);
+    }
+  };
+
+  const handleDeleteSellListing = async (propertyId: number) => {
+    const confirmed = window.confirm("Delete this listing permanently? This action cannot be undone.");
+    if (!confirmed) return;
+
+    setProcessingSellListingId(propertyId);
+    try {
+      await deleteProperty(propertyId);
+      setSellListings((current) => current.filter((item) => item.id !== propertyId));
+    } catch (error) {
+      console.error("Failed to delete listing:", error);
+    } finally {
+      setProcessingSellListingId(null);
+    }
+  };
+
   const displayBuyList = appointments.map((appointment) => ({
     id: appointment.id,
     property: appointment.property_title,
@@ -415,6 +569,11 @@ const Profile = () => {
 
   const paginatedSell = sellListings.slice((sellPage - 1) * sellItemsPerPage, sellPage * sellItemsPerPage);
   const totalSellPages = Math.max(1, Math.ceil(sellListings.length / sellItemsPerPage));
+  const paginatedFavorites = favorites.slice(
+    (favoritePage - 1) * favoriteItemsPerPage,
+    favoritePage * favoriteItemsPerPage,
+  );
+  const totalFavoritePages = Math.max(1, Math.ceil(favorites.length / favoriteItemsPerPage));
   const totalSellValue = sellListings.reduce((sum, item) => sum + item.rawPrice, 0);
   const revenueYears = Array.from(
     new Set([
@@ -438,7 +597,12 @@ const Profile = () => {
     totalValue: sellListings.length ? `${new Intl.NumberFormat("vi-VN").format(totalSellValue)} VND` : "—",
     properties: sellListings.length,
     appointments: appointments.length,
+    favorites: favorites.length,
   };
+
+  useEffect(() => {
+    setFavoritePage((current) => Math.min(current, totalFavoritePages));
+  }, [totalFavoritePages]);
 
   if (authLoading) {
     return (
@@ -564,6 +728,7 @@ const Profile = () => {
                   { label: "Total Value", value: profileStats.totalValue, icon: <TrendingUp className="w-4 h-4" /> },
                   { label: "Active Listings", value: profileStats.properties, icon: <Building2 className="w-4 h-4" /> },
                   { label: "Appointments", value: profileStats.appointments, icon: <Calendar className="w-4 h-4" /> },
+                  { label: "Saved", value: profileStats.favorites, icon: <Heart className="w-4 h-4" /> },
                 ].map((stat) => (
                   <div key={stat.label} className="text-center">
                     <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
@@ -580,7 +745,10 @@ const Profile = () => {
               {TABS.map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => {
+                    setActiveTab(tab.key);
+                    navigate(`/profile?tab=${tab.key}`, { replace: true });
+                  }}
                   className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold transition-colors cursor-pointer rounded-t-lg ${
                     activeTab === tab.key
                       ? "text-[#0F766E] border-b-2 border-[#0F766E] bg-white"
@@ -802,6 +970,42 @@ const Profile = () => {
                   </div>
                 )}
 
+                {!user?.is_staff && (
+                  <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          {profileVisible ? (
+                            <Eye className="w-5 h-5 text-emerald-600" />
+                          ) : (
+                            <EyeOff className="w-5 h-5 text-slate-500" />
+                          )}
+                          <h3 className="text-lg font-bold text-gray-900">Public Profile</h3>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-2">
+                          {profileVisible
+                            ? "Your agent profile can appear in Agents and can be opened by visitors."
+                            : "Your agent profile is private and hidden from Agents/public profile pages."}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleToggleProfileVisibility}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold border transition-colors cursor-pointer ${
+                          profileVisible
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                            : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                        }`}
+                        title={profileVisible ? "Profile is public" : "Profile is private"}
+                      >
+                        {profileVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        {profileVisible ? "Public" : "Private"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                   <div className="flex justify-between items-center mb-5">
                     <h3 className="text-lg font-bold text-gray-900">Revenue</h3>
@@ -1015,12 +1219,180 @@ const Profile = () => {
             </div>
           )}
 
+          {activeTab === "favorites" && (
+            <div className="space-y-6 animate-[fadeIn_0.3s_ease]">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Saved Listings</h2>
+                  <p className="text-sm text-gray-400 mt-1">Properties you saved from listings and detail pages</p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="rounded-full border-gray-200 text-gray-600 hover:border-[#14B8A6] hover:text-[#0F766E] cursor-pointer"
+                  onClick={() => navigate("/listings")}
+                >
+                  Browse Listings <ArrowRight className="w-3 h-3 ml-1" />
+                </Button>
+              </div>
+
+              {loadingFavorites ? (
+                <div className="py-10 text-center text-gray-500">Loading saved listings...</div>
+              ) : favorites.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+                  <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-4">
+                    <Heart className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">No saved listings yet</h3>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Tap the heart button on any property to keep it here for later.
+                  </p>
+                  <Button
+                    className="mt-4 bg-[#0369A1] hover:bg-[#0369A1]/90 text-white rounded-full px-6 cursor-pointer"
+                    onClick={() => navigate("/listings")}
+                  >
+                    Browse Listings
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {paginatedFavorites.map((favorite) => {
+                      const property = favorite.property;
+                      const price = `${new Intl.NumberFormat("vi-VN").format(Number(property.price || 0))} VND`;
+                      const image = property.primary_image ? getImageUrl(property.primary_image) : FALLBACK_PROPERTY_IMAGE;
+                      const address = [property.address, property.ward, property.district, property.city]
+                        .filter(Boolean)
+                        .join(", ");
+
+                      return (
+                        <div
+                          key={favorite.id}
+                          onClick={() => navigate(`/property/${property.id}`)}
+                          className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden cursor-pointer group"
+                        >
+                          <div className="relative h-48 overflow-hidden">
+                            <img
+                              src={image}
+                              alt={property.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleRemoveFavorite(property.id);
+                              }}
+                              disabled={removingFavoriteId === property.id}
+                              className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/95 text-rose-500 shadow-sm flex items-center justify-center hover:bg-rose-50 transition-colors cursor-pointer disabled:opacity-70"
+                              aria-label="Remove saved listing"
+                              title="Remove saved listing"
+                            >
+                              {removingFavoriteId === property.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
+                            <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1 rounded-lg">
+                              {property.listing_type_display || property.listing_type}
+                            </div>
+                          </div>
+
+                          <div className="p-5">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusColor(
+                                  property.status_display || property.status || "Active",
+                                )}`}
+                              >
+                                {property.status_display || property.status}
+                              </span>
+                              <span className="text-[11px] font-semibold text-gray-400">
+                                Saved {new Date(favorite.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <h4 className="text-lg font-bold text-gray-900 group-hover:text-[#0F766E] transition-colors line-clamp-2 min-h-[56px]">
+                              {property.title}
+                            </h4>
+                            <div className="flex items-start gap-1.5 text-gray-400 text-xs mt-1.5 min-h-[34px]">
+                              <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                              <span className="line-clamp-2">{address || property.city}</span>
+                            </div>
+                            <div className="text-2xl font-bold text-[#0F766E] mt-4 mb-4">{price}</div>
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <span>{property.property_type_display || property.property_type}</span>
+                              <span>{property.bedrooms ?? 0} beds · {property.bathrooms ?? 0} baths</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <PaginationControls
+                    currentPage={favoritePage}
+                    totalPages={totalFavoritePages}
+                    onPageChange={setFavoritePage}
+                  />
+                </>
+              )}
+            </div>
+          )}
+
+          {activeTab === "ratings" && (
+            <div className="space-y-6 animate-[fadeIn_0.3s_ease]">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Ratings & Comments</h2>
+                <p className="text-sm text-gray-400 mt-1">Feedback visitors left on your public seller profile</p>
+              </div>
+
+              {loadingRatings ? (
+                <div className="py-10 text-center text-gray-500">Loading ratings...</div>
+              ) : ratings.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+                  <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mx-auto mb-4">
+                    <Star className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">No ratings yet</h3>
+                  <p className="text-sm text-gray-500 mt-2">
+                    When buyers or renters rate your public profile, their comments will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {ratings.map((rating) => (
+                    <div key={rating.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="font-semibold text-gray-900">{rating.reviewer_name}</div>
+                          <div className="text-xs text-gray-400">@{rating.reviewer_username}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-sm font-bold text-amber-600">
+                            <Star className="w-3.5 h-3.5 fill-current" />
+                            {rating.rating}/5
+                          </div>
+                          <div className="mt-1 text-xs text-gray-400">
+                            {new Date(rating.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="mt-4 text-sm leading-6 text-gray-600">
+                        {rating.comment || "No comment provided."}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === "sell" && (
             <div className="space-y-6 animate-[fadeIn_0.3s_ease]">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Properties for Sale</h2>
-                  <p className="text-sm text-gray-400 mt-1">Manage your active property listings</p>
+                  <h2 className="text-2xl font-bold text-gray-900">My Listings</h2>
+                  <p className="text-sm text-gray-400 mt-1">Manage listing status, buyer requests, and property details</p>
                 </div>
                 <Button
                   className="bg-[#0369A1] hover:bg-[#0369A1]/90 text-white rounded-full px-6 cursor-pointer"
@@ -1046,44 +1418,112 @@ const Profile = () => {
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {paginatedSell.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => navigate(`/manage-property/${item.id}`)}
-                        className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden cursor-pointer group"
-                      >
-                        <div className="relative h-48 overflow-hidden">
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          {item.newAppointments > 0 && (
-                            <div className="absolute top-3 right-3 bg-rose-500 text-white text-xs font-bold px-2 rounded flex items-center gap-1 shadow-md animate-pulse">
-                              <span className="relative flex h-2 w-2 mr-1">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-                              </span>
-                              {item.newAppointments} New Appointments
-                            </div>
-                          )}
-                          <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-lg">
-                            {item.daysListed} days
-                          </div>
-                        </div>
+                    {paginatedSell.map((item) => {
+                      const finalStatus = item.listingType === "rent" ? "rented" : "sold";
+                      const finalStatusLabel = item.listingType === "rent" ? "Mark rented" : "Mark sold";
+                      const processing = processingSellListingId === item.id;
 
-                        <div className="p-5">
-                          <h4 className="text-lg font-bold text-gray-900 group-hover:text-[#0F766E] transition-colors truncate">
-                            {item.title}
-                          </h4>
-                          <div className="flex items-start gap-1.5 text-gray-400 text-xs mt-1.5">
-                            <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
-                            <span>{item.address}</span>
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => navigate(`/manage-property/${item.id}`)}
+                          className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden cursor-pointer group"
+                        >
+                          <div className="relative h-48 overflow-hidden">
+                            <img
+                              src={item.image}
+                              alt={item.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                            {item.newAppointments > 0 && (
+                              <div className="absolute top-3 right-3 bg-rose-500 text-white text-xs font-bold px-2 rounded flex items-center gap-1 shadow-md animate-pulse">
+                                <span className="relative flex h-2 w-2 mr-1">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                                </span>
+                                {item.newAppointments} New Appointments
+                              </div>
+                            )}
+                            <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-lg">
+                              {item.daysListed} days
+                            </div>
                           </div>
-                          <div className="text-2xl font-bold text-[#0F766E] mt-4 mb-4">{item.price}</div>
+
+                          <div className="p-5">
+                            <div className="mb-3 flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusColor(item.status)}`}>
+                                {item.status}
+                              </span>
+                              <span
+                                className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                                  item.isActive
+                                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                    : "border-gray-200 bg-gray-50 text-gray-500"
+                                }`}
+                              >
+                                {item.isActive ? "Public" : "Hidden"}
+                              </span>
+                            </div>
+                            <h4 className="text-lg font-bold text-gray-900 group-hover:text-[#0F766E] transition-colors truncate">
+                              {item.title}
+                            </h4>
+                            <div className="flex items-start gap-1.5 text-gray-400 text-xs mt-1.5">
+                              <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                              <span>{item.address}</span>
+                            </div>
+                            <div className="text-2xl font-bold text-[#0F766E] mt-4 mb-4">{item.price}</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full text-xs"
+                                disabled={processing}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void handleSellStatusChange(item.id, item.isActive ? "inactive" : "active", !item.isActive);
+                                }}
+                              >
+                                {item.isActive ? (
+                                  <PauseCircle className="mr-1 h-3.5 w-3.5" />
+                                ) : (
+                                  <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                                )}
+                                {item.isActive ? "Pause" : "Activate"}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full border-sky-200 text-xs text-sky-700 hover:bg-sky-50 hover:text-sky-800"
+                                disabled={processing || item.rawStatus === finalStatus}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void handleSellStatusChange(item.id, finalStatus, false);
+                                }}
+                              >
+                                <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                                {finalStatusLabel}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="destructive"
+                                className="col-span-2 rounded-full text-xs"
+                                disabled={processing}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void handleDeleteSellListing(item.id);
+                                }}
+                              >
+                                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                                {processing ? "Processing..." : "Delete listing"}
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <PaginationControls currentPage={sellPage} totalPages={totalSellPages} onPageChange={setSellPage} />

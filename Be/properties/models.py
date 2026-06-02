@@ -72,6 +72,11 @@ class Property(models.Model):
         verbose_name = 'Bất động sản'
         verbose_name_plural = 'Bất động sản'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['is_active', '-is_featured', '-created_at'], name='prop_active_featured_idx'),
+            models.Index(fields=['is_active', 'listing_type', '-created_at'], name='prop_listing_type_idx'),
+            models.Index(fields=['is_active', 'price'], name='prop_price_idx'),
+        ]
 
     def __str__(self):
         return f"{self.title} - {self.city}"
